@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../config/app_colors.dart';
 import '../resident/resident_home.dart';
 import '../driver/driver_home.dart';
 import '../admin/admin_home.dart';
@@ -21,8 +22,8 @@ class _SignupScreenState extends State<SignupScreen> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
   final _addressController = TextEditingController();
-  final _wardController = TextEditingController();
-  String _selectedRole = 'resident';
+  final _wardController = TextEditingController(text: 'Ward 1');
+  final String _selectedRole = 'resident';
 
   @override
   void dispose() {
@@ -47,7 +48,7 @@ class _SignupScreenState extends State<SignupScreen> {
         phone: _phoneController.text.trim(),
         role: _selectedRole,
         address: _addressController.text.trim(),
-        ward: _wardController.text.trim(),
+        ward: _wardController.text,
       );
 
       if (!mounted) return;
@@ -58,7 +59,8 @@ class _SignupScreenState extends State<SignupScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(authProvider.error ?? 'Signup failed'),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
@@ -67,210 +69,128 @@ class _SignupScreenState extends State<SignupScreen> {
 
   void _navigateToHome(String role) {
     Widget homeScreen;
-    
     switch (role) {
-      case 'resident':
-        homeScreen = const ResidentHome();
-        break;
-      case 'driver':
-        homeScreen = const DriverHome();
-        break;
-      case 'admin':
-        homeScreen = const AdminHome();
-        break;
-      default:
-        homeScreen = const LoginScreen();
+      case 'resident': homeScreen = const ResidentHome(); break;
+      case 'driver': homeScreen = const DriverHome(); break;
+      case 'admin': homeScreen = const AdminHome(); break;
+      default: homeScreen = const LoginScreen();
     }
-    
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => homeScreen),
-    );
+    Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => homeScreen));
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Account'),
-      ),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
+          padding: const EdgeInsets.symmetric(horizontal: 28),
           child: Form(
             key: _formKey,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
-                
-                // Name
-                const Text('Full Name', style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 40),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                  ),
+                ),
+                const SizedBox(height: 30),
+                const Text('Create Account', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
                 const SizedBox(height: 8),
+                const Text('Join the smart waste management community today.', style: TextStyle(color: AppColors.textBody, fontSize: 15)),
+                const SizedBox(height: 40),
+                
+                _buildFieldLabel('Full Name'),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _nameController,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your full name',
-                    prefixIcon: Icon(Icons.person_outline),
-                  ),
-                  validator: (value) => value?.isEmpty ?? true ? 'Please enter your name' : null,
+                  decoration: const InputDecoration(hintText: 'John Doe', prefixIcon: Icon(Icons.person_outline_rounded, size: 20)),
+                  validator: (v) => v!.isEmpty ? 'Required' : null,
                 ),
-                const SizedBox(height: 16),
                 
-                // Email
-                const Text('Email', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 20),
+                _buildFieldLabel('Email Address'),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _emailController,
                   keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your email',
-                    prefixIcon: Icon(Icons.email_outlined),
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Please enter your email';
-                    if (!value!.contains('@')) return 'Please enter a valid email';
-                    return null;
-                  },
+                  decoration: const InputDecoration(hintText: 'name@example.com', prefixIcon: Icon(Icons.email_outlined, size: 20)),
+                  validator: (v) => v!.isEmpty ? 'Required' : (!v.contains('@') ? 'Invalid email' : null),
                 ),
-                const SizedBox(height: 16),
-                
-                // Phone
-                const Text('Phone Number', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your phone number',
-                    prefixIcon: Icon(Icons.phone_outlined),
-                  ),
-                  validator: (value) => value?.isEmpty ?? true ? 'Please enter your phone number' : null,
-                ),
-                const SizedBox(height: 16),
-                
-                // Role Selection
-                const Text('Role', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+
+                const SizedBox(height: 20),
+                _buildFieldLabel('Primary Ward'),
+                const SizedBox(height: 10),
                 DropdownButtonFormField<String>(
-                  value: _selectedRole,
-                  decoration: const InputDecoration(
-                    prefixIcon: Icon(Icons.badge_outlined),
-                  ),
-                  items: const [
-                    DropdownMenuItem(value: 'resident', child: Text('Resident')),
-                    DropdownMenuItem(value: 'driver', child: Text('Driver')),
-                  ],
-                  onChanged: (value) {
-                    setState(() {
-                      _selectedRole = value!;
-                    });
-                  },
+                  value: _wardController.text,
+                  items: ['Ward 1', 'Ward 2', 'Ward 3', 'Ward 4', 'Ward 5']
+                      .map((w) => DropdownMenuItem(value: w, child: Text(w, style: const TextStyle(color: Colors.white))))
+                      .toList(),
+                  onChanged: (val) => setState(() => _wardController.text = val ?? 'Ward 1'),
+                  dropdownColor: AppColors.secondary,
+                  iconEnabledColor: AppColors.accent,
+                  decoration: const InputDecoration(prefixIcon: Icon(Icons.business_rounded, size: 20)),
                 ),
-                const SizedBox(height: 16),
                 
-                // Address
-                const Text('Address', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _addressController,
-                  maxLines: 2,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your address',
-                    prefixIcon: Icon(Icons.location_on_outlined),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Ward
-                const Text('Ward', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
-                TextFormField(
-                  controller: _wardController,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter your ward (e.g., Ward A)',
-                    prefixIcon: Icon(Icons.business_outlined),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Password
-                const Text('Password', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 20),
+                _buildFieldLabel('Password'),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _passwordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    hintText: 'Enter password',
-                    prefixIcon: Icon(Icons.lock_outlined),
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Please enter a password';
-                    if (value!.length < 6) return 'Password must be at least 6 characters';
-                    return null;
-                  },
+                  decoration: const InputDecoration(hintText: 'Min 6 characters', prefixIcon: Icon(Icons.lock_outline_rounded, size: 20)),
+                  validator: (v) => v!.length < 6 ? 'Too short' : null,
                 ),
-                const SizedBox(height: 16),
                 
-                // Confirm Password
-                const Text('Confirm Password', style: TextStyle(fontWeight: FontWeight.w600)),
-                const SizedBox(height: 8),
+                const SizedBox(height: 20),
+                _buildFieldLabel('Confirm Password'),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _confirmPasswordController,
                   obscureText: true,
-                  decoration: const InputDecoration(
-                    hintText: 'Confirm password',
-                    prefixIcon: Icon(Icons.lock_outlined),
-                  ),
-                  validator: (value) {
-                    if (value?.isEmpty ?? true) return 'Please confirm your password';
-                    if (value != _passwordController.text) return 'Passwords do not match';
-                    return null;
-                  },
+                  decoration: const InputDecoration(hintText: 'Repeat password', prefixIcon: Icon(Icons.lock_rounded, size: 20)),
+                  validator: (v) => v != _passwordController.text ? 'Mismatch' : null,
                 ),
-                const SizedBox(height: 24),
                 
-                // Signup Button
+                const SizedBox(height: 40),
                 Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    return SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: authProvider.isLoading ? null : _handleSignup,
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: authProvider.isLoading
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : const Text('Sign Up', style: TextStyle(fontSize: 16)),
-                        ),
-                      ),
-                    );
-                  },
+                  builder: (context, auth, _) => ElevatedButton(
+                    onPressed: auth.isLoading ? null : _handleSignup,
+                    child: auth.isLoading 
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Text('Create Account'),
+                  ),
                 ),
-                const SizedBox(height: 16),
-                
-                // Login Link
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text('Already have an account? '),
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Login'),
-                    ),
-                  ],
-                ),
+                const SizedBox(height: 30),
+                _buildFooterLink(),
+                const SizedBox(height: 50),
               ],
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildFieldLabel(String label) {
+    return Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14));
+  }
+
+  Widget _buildFooterLink() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text("Already a member? ", style: TextStyle(color: AppColors.textBody)),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Sign In', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+        ),
+      ],
     );
   }
 }

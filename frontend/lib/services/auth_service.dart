@@ -24,9 +24,9 @@ class AuthService {
     String address = '',
     String ward = '',
   }) async {
-    // Restricted: No admin creation via signup
-    if (role == 'admin') {
-      throw 'Admin accounts cannot be created via Signup.';
+    // Restricted: No admin or driver creation via signup
+    if (role == 'admin' || role == 'driver') {
+      throw '${role.substring(0, 1).toUpperCase() + role.substring(1)} accounts cannot be created via Signup.';
     }
     try {
       UserCredential result = await _auth.createUserWithEmailAndPassword(
@@ -125,7 +125,11 @@ class AuthService {
     try {
       // Trigger the authentication flow
       final GoogleSignIn googleSignIn = GoogleSignIn();
-      
+
+      // Force the account selection dialog to appear so you can pick a different account!
+      // (This does NOT log you out of your Google account on your phone)
+      await googleSignIn.signOut();
+
       // Attempt to sign in
       final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
 
@@ -236,6 +240,242 @@ class AuthService {
           .update(user.toJson());
     } catch (e) {
       throw AppConstants.errorGeneric;
+    }
+  }
+
+  // Request home location verification
+  Future<void> requestHomeVerification(String userId, double lat, double lng) async {
+    try {
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .update({
+        'pendingLat': lat,
+        'pendingLng': lng,
+        'homeStatus': 'pending_approval',
+      });
+    } catch (e) {
+      throw 'Failed to submit home request: $e';
+    }
+  }
+
+  // Admin: Approve or Reject home request
+  Future<void> handleHomeApproval(String userId, bool approved) async {
+    try {
+      if (approved) {
+        final doc = await _firestore.collection(AppConstants.usersCollection).doc(userId).get();
+        final data = doc.data() as Map<String, dynamic>;
+        await _firestore.collection(AppConstants.usersCollection).doc(userId).update({
+          'homeLat': data['pendingLat'],
+          'homeLng': data['pendingLng'],
+          'homeStatus': 'approved',
+          'pendingLat': FieldValue.delete(),
+          'pendingLng': FieldValue.delete(),
+        });
+      } else {
+        await _firestore.collection(AppConstants.usersCollection).doc(userId).update({
+          'homeStatus': 'none', // Reset for retry
+          'pendingLat': FieldValue.delete(),
+          'pendingLng': FieldValue.delete(),
+        });
+      }
+    } catch (e) {
+      throw 'Verification process failed: $e';
+    }
+  }
+
+  // Request removal of approved home
+  Future<void> requestHomeRemoval(String userId) async {
+    try {
+      await _firestore
+          .collection(AppConstants.usersCollection)
+          .doc(userId)
+          .update({
+        'homeStatus': 'pending_removal',
+      });
+    } catch (e) {
+      throw 'Failed to submit removal request: $e';
+    }
+  }
+
+  // Admin: Approve home removal
+  Future<void> approveHomeRemoval(String userId) async {
+    try {
+      await _firestore.collection(AppConstants.usersCollection).doc(userId).update({
+        'homeLat': FieldValue.delete(),
+        'homeLng': FieldValue.delete(),
+        'homeStatus': 'none',
+      });
+    } catch (e) {
+      throw 'Removal failed: $e';
+    }
+  }
+
+  // Symmetric Seeding: Create both Auth accounts and tracking markers for the demo fleet
+  Future<void> seedDummyTrucks() async {
+    final List<Map<String, dynamic>> dummyTrucks = [
+      {
+        'id': 'dummy_1',
+        'driverName': 'Driver 1 (Alpha)',
+        'isOnDuty': true,
+        'liveLocation': {'lat': 19.0596, 'lng': 72.8295, 'heading': 0.0, 'speed': 10.0},
+        'truckNumber': 'MH-01-AA-0001',
+        'currentRoute': null,
+        'ward': 'Ward 1',
+      },
+      {
+        'id': 'dummy_2',
+        'driverName': 'Driver 2 (Beta)',
+        'isOnDuty': true,
+        'liveLocation': {'lat': 19.0400, 'lng': 72.8500, 'heading': 0.0, 'speed': 10.0},
+        'truckNumber': 'MH-01-BB-0002',
+        'currentRoute': null,
+        'ward': 'Ward 2',
+      },
+      {
+        'id': 'dummy_3',
+        'driverName': 'Driver 3 (Gamma)',
+        'isOnDuty': true,
+        'liveLocation': {'lat': 19.0760, 'lng': 72.8777, 'heading': 0.0, 'speed': 10.0},
+        'truckNumber': 'MH-01-CC-0003',
+        'currentRoute': null,
+        'ward': 'Ward 3',
+      },
+      {
+        'id': 'dummy_4',
+        'driverName': 'Driver 4 (Delta)',
+        'isOnDuty': true,
+        'liveLocation': {'lat': 19.0330, 'lng': 72.8166, 'heading': 0.0, 'speed': 10.0},
+        'truckNumber': 'MH-01-DD-0004',
+        'currentRoute': null,
+        'ward': 'Ward 4',
+      },
+      {
+        'id': 'dummy_5',
+        'driverName': 'Driver 5 (Epsilon)',
+        'isOnDuty': true,
+        'liveLocation': {'lat': 19.0200, 'lng': 72.8300, 'heading': 0.0, 'speed': 10.0},
+        'truckNumber': 'MH-01-EE-0005',
+        'currentRoute': null,
+        'ward': 'Ward 5',
+      },
+    ];
+
+    final WriteBatch batch = _firestore.batch();
+
+    for (var truck in dummyTrucks) {
+      // 1. Update Tracking Profile
+      final driverRef = _firestore.collection('drivers').doc(truck['id']);
+      batch.set(driverRef, truck, SetOptions(merge: true));
+
+      // 2. Update Auth User Profile (so they are selectable in Admin Panel)
+      final userRef = _firestore.collection(AppConstants.usersCollection).doc(truck['id']);
+      batch.set(userRef, {
+        'id': truck['id'],
+        'name': truck['driverName'],
+        'email': 'driver${truck['id'].split('_')[1]}@gmail.com',
+        'role': 'driver',
+        'phone': '+91 90000 0000${truck['id'].split('_')[1]}',
+        'createdAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+    }
+    
+    await batch.commit();
+  }
+
+
+  // Admin: Assign route to driver
+  Future<void> assignRouteToDriver(String driverId, Map<String, dynamic>? route, {String? ward}) async {
+    final Map<String, dynamic> trackingUpdates = {
+      'currentRoute': route,
+    };
+    if (ward != null) {
+      trackingUpdates['ward'] = ward;
+      
+      // Also update the main user profile so it shows in their personal profile page
+      try {
+        await _firestore.collection(AppConstants.usersCollection).doc(driverId).update({
+          'ward': ward,
+        });
+      } catch (e) {
+        print('User profile ward update failed: $e');
+      }
+    }
+    
+    // Ensure tracking document exists or is updated
+    await _firestore
+        .collection('drivers')
+        .doc(driverId)
+        .set(trackingUpdates, SetOptions(merge: true));
+  }
+
+  // Seed Demo Residents for pickup simulation
+  Future<void> seedDemoResidents() async {
+    final List<Map<String, dynamic>> wards = [
+      {'name': 'Ward 1', 'lat': 19.0596, 'lng': 72.8295}, // Bandra
+      {'name': 'Ward 2', 'lat': 19.0400, 'lng': 72.8500}, // Dharavi
+      {'name': 'Ward 3', 'lat': 19.0760, 'lng': 72.8777}, // Kurla
+    ];
+
+    final WriteBatch batch = _firestore.batch();
+
+    for (var ward in wards) {
+      for (int i = 1; i <= 4; i++) {
+        final String resId = 'demo_res_${ward['name'].toString().replaceAll(' ', '_')}_$i';
+        final double lat = ward['lat'] + (i * 0.002) - 0.004;
+        final double lng = ward['lng'] + (i * 0.001) - 0.002;
+
+        final docRef = _firestore.collection(AppConstants.usersCollection).doc(resId);
+        batch.set(docRef, {
+          'id': resId,
+          'name': 'Resident $i (${ward['name']})',
+          'email': 'res${ward['name'].toString().split(' ')[1]}_$i@demo.com',
+          'role': AppConstants.roleResident,
+          'ward': ward['name'],
+          'homeStatus': 'approved',
+          'homeLat': lat,
+          'homeLng': lng,
+          'phone': '+91 98200 ${10000 + i}',
+          'address': 'Building $i, Sector ${i+2}, ${ward['name']}',
+          'createdAt': FieldValue.serverTimestamp(),
+        }, SetOptions(merge: true));
+      }
+    }
+
+    await batch.commit();
+  }
+
+  // Cleanup: Delete all drivers except the standard demo fleet (Dummy 1-5)
+  // Now performs DEEP wipe and throws errors for UI transparency
+  Future<void> pruneLegacyDrivers() async {
+    final List<String> keepIds = ['dummy_1', 'dummy_2', 'dummy_3', 'dummy_4', 'dummy_5'];
+    
+    try {
+      final batch = _firestore.batch();
+      
+      // 1. Cleanup drivers collection
+      final driverSnapshot = await _firestore.collection('drivers').get();
+      for (var doc in driverSnapshot.docs) {
+        if (!keepIds.contains(doc.id)) {
+          batch.delete(doc.reference);
+        }
+      }
+
+      // 2. Cleanup users collection (strictly target all 'driver' roles except our IDs)
+      final userSnapshot = await _firestore.collection(AppConstants.usersCollection)
+          .where('role', isEqualTo: 'driver')
+          .get();
+      
+      for (var doc in userSnapshot.docs) {
+        if (!keepIds.contains(doc.id)) {
+          batch.delete(doc.reference);
+        }
+      }
+      
+      await batch.commit();
+    } catch (e) {
+      print('Database Pruning Error: $e');
+      rethrow; // Ensure UI can catch and show error
     }
   }
 

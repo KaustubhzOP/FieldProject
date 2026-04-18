@@ -1,8 +1,11 @@
 import 'dart:async';
-import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-import '../../utils/map_helper.dart';
+import '../../services/location_broadcast_service.dart';
+import '../../config/app_colors.dart';
+import '../../utils/map_styles.dart';
 
 class AdminTrackingScreen extends StatefulWidget {
   const AdminTrackingScreen({super.key});
@@ -13,175 +16,206 @@ class AdminTrackingScreen extends StatefulWidget {
 
 class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
   GoogleMapController? _mapController;
-  Timer? _timer;
-  BitmapDescriptor? _busIcon;
-  BitmapDescriptor? _pickupIcon;
-  
-  // Multiple drivers state
-  final List<DriverLocation> _drivers = [
-    DriverLocation(id: 'd1', name: 'Truck 1 (Mumbai South)', initialLocation: const LatLng(18.9220, 72.8347), color: Colors.orange),
-    DriverLocation(id: 'd2', name: 'Truck 2 (Dadar/Worli)', initialLocation: const LatLng(19.0178, 72.8478), color: Colors.blue),
-    DriverLocation(id: 'd3', name: 'Truck 3 (Andheri)', initialLocation: const LatLng(19.1136, 72.8697), color: Colors.green),
-  ];
+  StreamSubscription? _driversSubscription;
+  final _broadcastService = LocationBroadcastService();
 
-  // Static Pickup Points
-  final List<Map<String, dynamic>> _pickupPoints = [
-    {'id': 'p1', 'name': 'Bandra West Stop', 'lat': 19.0596, 'lng': 72.8295},
-    {'id': 'p2', 'name': 'Juhu Beach Point', 'lat': 19.0988, 'lng': 72.8264},
-    {'id': 'p3', 'name': 'Powai Lake Hub', 'lat': 19.1290, 'lng': 72.9042},
-    {'id': 'p4', 'name': 'Versova Ward', 'lat': 19.1383, 'lng': 72.8106},
-  ];
+  final Map<String, Map<String, dynamic>> _liveDrivers = {};
+  final Map<String, Map<String, dynamic>> _liveHouses = {};
+
+  bool _showTrucks = true;
+  bool _showHouses = true;
 
   @override
   void initState() {
     super.initState();
-    _loadIcons();
     _startLiveTracking();
   }
 
-  Future<void> _loadIcons() async {
-    final busIcon = await MapHelper.getMarkerIconFromIcon(Icons.directions_bus, Colors.orange, 90);
-    final pickupIcon = await MapHelper.getMarkerIconFromIcon(Icons.location_on, Colors.red, 70);
-    if (mounted) {
-      setState(() {
-        _busIcon = busIcon;
-        _pickupIcon = pickupIcon;
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
   void _startLiveTracking() {
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
-      if (mounted) {
-        setState(() {
-          for (var driver in _drivers) {
-            driver.moveSlightly();
-          }
-        });
-      }
+    _driversSubscription = _broadcastService.getActiveDriversStream().listen((snapshot) {
+      if (!mounted) return;
+      setState(() {
+        _liveDrivers.clear();
+        for (var doc in snapshot.docs) {
+          _liveDrivers[doc.id] = doc.data() as Map<String, dynamic>;
+        }
+      });
+    });
+
+    FirebaseFirestore.instance.collection('users').where('homeStatus', isEqualTo: 'approved').snapshots().listen((snapshot) {
+      if (!mounted) return;
+      setState(() {
+        _liveHouses.clear();
+        for (var doc in snapshot.docs) {
+          _liveHouses[doc.id] = doc.data();
+        }
+      });
     });
   }
 
   @override
+  void dispose() {
+    _driversSubscription?.cancel();
+    super.dispose();
+  }
+
+  Set<Marker> _buildMarkers() {
+    final Set<Marker> markers = {};
+
+    if (_showHouses) {
+      for (var entry in _liveHouses.entries) {
+        final data = entry.value;
+        if (data['homeLat'] == null) continue;
+        markers.add(Marker(
+          markerId: MarkerId('house_${entry.key}'),
+          position: LatLng(data['homeLat'], data['homeLng']),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+          infoWindow: InfoWindow(title: data['name'] ?? 'Resident'),
+        ));
+      }
+    }
+
+    if (_showTrucks) {
+      for (var entry in _liveDrivers.entries) {
+        final data = entry.value;
+        final location = data['liveLocation'];
+        if (location == null) continue;
+        markers.add(Marker(
+          markerId: MarkerId(entry.key),
+          position: LatLng((location['lat'] as num).toDouble(), (location['lng'] as num).toDouble()),
+          rotation: (location['heading'] as num?)?.toDouble() ?? 0,
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          infoWindow: InfoWindow(title: data['driverName'] ?? 'Truck'),
+        ));
+      }
+    }
+    return markers;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    Set<Marker> markers = {};
-
-    // 1. Add Pickup Point Markers
-    for (var point in _pickupPoints) {
-      markers.add(
-        Marker(
-          markerId: MarkerId(point['id']),
-          position: LatLng(point['lat'], point['lng']),
-          icon: _pickupIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
-          infoWindow: InfoWindow(title: point['name'], snippet: 'Pickup Point'),
-        ),
-      );
-    }
-
-    // 2. Add Multiple Live Driver Markers
-    for (var driver in _drivers) {
-      markers.add(
-        Marker(
-          markerId: MarkerId(driver.id),
-          position: driver.currentLocation,
-          rotation: driver.heading,
-          icon: _busIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
-          infoWindow: InfoWindow(
-            title: driver.name,
-            snippet: 'Status: On Route • Speed: 32 km/h',
-          ),
-        ),
-      );
-    }
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Fleet Live Tracking')),
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(
+        title: const Text('Fleet Intelligence'),
+        actions: [
+          _buildToggle(Icons.local_shipping_rounded, _showTrucks, () => setState(() => _showTrucks = !_showTrucks)),
+          _buildToggle(Icons.home_rounded, _showHouses, () => setState(() => _showHouses = !_showHouses)),
+          const SizedBox(width: 12),
+        ],
+      ),
       body: Stack(
         children: [
           GoogleMap(
-            initialCameraPosition: const CameraPosition(
-              target: LatLng(19.0760, 72.8777),
-              zoom: 12,
-            ),
-            markers: markers,
-            myLocationEnabled: true,
-            onMapCreated: (controller) => _mapController = controller,
+            initialCameraPosition: const CameraPosition(target: LatLng(19.0760, 72.8777), zoom: 12),
+            markers: _buildMarkers(),
+            style: MapStyles.darkStyle,
+            zoomControlsEnabled: false,
+            onMapCreated: (c) => _mapController = c,
           ),
-          // Legend/Status Card
-          Positioned(
-            top: 20,
-            left: 20,
-            right: 20,
-            child: Container(
-              height: 100,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: _drivers.length,
-                itemBuilder: (context, index) {
-                  final driver = _drivers[index];
-                  return Card(
-                    elevation: 4,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    child: Container(
-                      width: 160,
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Row(
-                            children: [
-                              Container(width: 8, height: 8, decoration: BoxDecoration(color: driver.color, shape: BoxShape.circle)),
-                              const SizedBox(width: 8),
-                              Expanded(child: Text(driver.name.split(' (').first, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis)),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          ElevatedButton(
-                            onPressed: () => _mapController?.animateCamera(CameraUpdate.newLatLng(driver.currentLocation)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: driver.color.withOpacity(0.1),
-                              foregroundColor: driver.color,
-                              elevation: 0,
-                              minimumSize: const Size(double.infinity, 30),
-                              padding: EdgeInsets.zero,
-                            ),
-                            child: const Text('Track', style: TextStyle(fontSize: 11)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
+          
+          if (_liveDrivers.isNotEmpty) _buildFleetScanner(),
+          
+          _buildZoomControls(),
         ],
       ),
     );
   }
-}
 
-class DriverLocation {
-  final String id;
-  final String name;
-  LatLng currentLocation;
-  final Color color;
-  double heading = 0.0;
-  final Random _random = Random();
+  Widget _buildToggle(IconData icon, bool active, VoidCallback tap) {
+    return IconButton(
+      icon: Container(
+        padding: const EdgeInsets.all(6),
+        decoration: BoxDecoration(color: active ? AppColors.accent.withOpacity(0.2) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+        child: Icon(icon, color: active ? AppColors.accent : AppColors.textMuted, size: 20),
+      ),
+      onPressed: tap,
+    );
+  }
 
-  DriverLocation({required this.id, required this.name, required LatLng initialLocation, required this.color}) : currentLocation = initialLocation;
+  Widget _buildFleetScanner() {
+    return Positioned(
+      top: 100, left: 16, right: 16,
+      child: SizedBox(
+        height: 90,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: _liveDrivers.length,
+          itemBuilder: (context, index) {
+            final entry = _liveDrivers.entries.elementAt(index);
+            final data = entry.value;
+            final location = data['liveLocation'];
+            final name = data['driverName'] ?? 'Driver ${index + 1}';
+            
+            return Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                  child: InkWell(
+                    onTap: () {
+                      if (location != null) {
+                        _mapController?.animateCamera(CameraUpdate.newLatLng(LatLng(location['lat'], location['lng'])));
+                      }
+                    },
+                    child: Container(
+                      width: 160,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.8), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)),
+                      child: Row(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis),
+                              const SizedBox(height: 4),
+                              Row(
+                                children: [
+                                  const Icon(Icons.speed_rounded, color: AppColors.accent, size: 12),
+                                  const SizedBox(width: 4),
+                                  Text('${(location?['speed'] ?? 0).toStringAsFixed(0)} km/h', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
+                                ],
+                              ),
+                            ],
+                          ),
+                          const Spacer(),
+                          const Icon(Icons.radar_rounded, color: AppColors.accent, size: 18),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 
-  void moveSlightly() {
-    // Random move between -0.0005 and 0.0005
-    double latOffset = (_random.nextDouble() - 0.5) * 0.001;
-    double lngOffset = (_random.nextDouble() - 0.5) * 0.001;
-    currentLocation = LatLng(currentLocation.latitude + latOffset, currentLocation.longitude + lngOffset);
-    heading = _random.nextDouble() * 360;
+  Widget _buildZoomControls() {
+    return Positioned(
+      right: 16, bottom: 40,
+      child: Column(
+        children: [
+          _buildMapBtn(Icons.add, () => _mapController?.animateCamera(CameraUpdate.zoomIn())),
+          const SizedBox(height: 8),
+          _buildMapBtn(Icons.remove, () => _mapController?.animateCamera(CameraUpdate.zoomOut())),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMapBtn(IconData icon, VoidCallback tap) {
+    return InkWell(
+      onTap: tap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.8), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+        child: Icon(icon, color: Colors.white, size: 20),
+      ),
+    );
   }
 }

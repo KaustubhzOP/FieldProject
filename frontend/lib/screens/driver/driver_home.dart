@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dashboard_screen.dart';
 import 'route_screen.dart';
+import 'qr_scan_screen.dart';
 import 'profile_screen.dart';
 
 class DriverHome extends StatefulWidget {
@@ -12,10 +13,11 @@ class DriverHome extends StatefulWidget {
 
 class _DriverHomeState extends State<DriverHome> {
   int _selectedIndex = 0;
-  
+
   final List<Widget> _screens = [
     const DriverDashboardScreen(),
     const DriverRouteScreen(),
+    const QrScanScreen(),
     const DriverProfileScreen(),
   ];
 
@@ -26,6 +28,7 @@ class _DriverHomeState extends State<DriverHome> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: (index) => setState(() => _selectedIndex = index),
+        type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard_outlined),
@@ -36,6 +39,11 @@ class _DriverHomeState extends State<DriverHome> {
             icon: Icon(Icons.route_outlined),
             activeIcon: Icon(Icons.route),
             label: 'Route',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.qr_code_scanner),
+            activeIcon: Icon(Icons.qr_code_scanner),
+            label: 'QR Scan',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),

@@ -68,6 +68,11 @@ dependencies:
   permission_handler: ^11.3.1
   image_picker: ^1.1.2
   uuid: ^4.5.1
+  # BLE & Background
+  flutter_blue_plus: ^1.31.16
+  flutter_background_service: ^5.0.5
+  mobile_scanner: ^5.1.0
+  
   flutter_local_notifications: ^17.2.3
 
 dev_dependencies:
