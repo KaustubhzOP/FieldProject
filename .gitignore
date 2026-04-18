@@ -1,0 +1,16 @@
+.DS_Store
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+frontend/build/
+backend/.firebase/
+backend/*.log
+**/*.jks
+**/*.keystore
+**/*.google-services.json
+**/*.GoogleService-Info.plist
+
