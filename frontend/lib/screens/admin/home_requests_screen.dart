@@ -32,17 +32,14 @@ class _AdminHomeRequestsScreenState extends State<AdminHomeRequestsScreen> {
             return const Center(child: CircularProgressIndicator(color: AppColors.accent));
           }
 
-          // Safe parsing without strict casting that fails on some Web compilers
+          // Safe parsing
           List<QueryDocumentSnapshot> pendingDocs = [];
           if (snapshot.hasData && snapshot.data != null) {
             for (var doc in snapshot.data!.docs) {
               try {
-                final dynamic dataObj = doc.data();
-                if (dataObj != null && dataObj is Map) {
-                  final status = dataObj['homeStatus']?.toString();
-                  if (status == 'pending_approval' || status == 'pending_removal') {
-                    pendingDocs.add(doc);
-                  }
+                final data = doc.data() as Map<String, dynamic>?;
+                if (data != null && (data['homeStatus'] == 'pending_approval' || data['homeStatus'] == 'pending_removal')) {
+                  pendingDocs.add(doc);
                 }
               } catch (e) {
                  // ignore corrupted docs

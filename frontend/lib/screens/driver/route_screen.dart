@@ -7,7 +7,6 @@ import 'package:geolocator/geolocator.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/map_styles.dart';
 import '../../config/app_colors.dart';
-import '../../utils/map_marker_utils.dart';
 
 class DriverRouteScreen extends StatefulWidget {
   const DriverRouteScreen({super.key});
@@ -37,7 +36,10 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
   }
 
   Future<void> _loadIcons() async {
-    final icon = await MapMarkerUtils.createCustomMarkerBitmap(Icons.local_shipping_rounded, color: const Color(0xFF2979FF));
+    final icon = await BitmapDescriptor.fromAssetImage(
+      const ImageConfiguration(size: Size(48, 48)),
+      'assets/icons/truck_nav.png',
+    );
     if (mounted) setState(() => _truckIcon = icon);
   }
 

@@ -10,7 +10,6 @@ import '../../config/app_colors.dart';
 import '../../services/proximity_scanner_service.dart';
 import '../../services/auth_service.dart';
 import '../../utils/map_styles.dart';
-import '../../utils/map_marker_utils.dart';
 
 class ResidentHomeScreen extends StatefulWidget {
   const ResidentHomeScreen({super.key});
@@ -35,19 +34,12 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
   String _residentWard = '';
   bool _truckArriving = false;
   bool _isLoading = false;
-  BitmapDescriptor? _truckIcon;
 
   @override
   void initState() {
     super.initState();
-    _initCustomMarkers();
     _startTracking();
     _initProximityMonitoring();
-  }
-
-  Future<void> _initCustomMarkers() async {
-    final icon = await MapMarkerUtils.createCustomMarkerBitmap(Icons.local_shipping_rounded, color: AppColors.accent);
-    setState(() => _truckIcon = icon);
   }
 
   void _startTracking() {
@@ -171,7 +163,7 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
       markers.add(Marker(
         markerId: MarkerId(entry.key),
         position: LatLng(location['lat'], location['lng']),
-        icon: _truckIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         rotation: (location['heading'] as num?)?.toDouble() ?? 0,
       ));
     }
