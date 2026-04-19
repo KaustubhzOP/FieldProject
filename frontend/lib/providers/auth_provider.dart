@@ -163,6 +163,41 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Update Profile
+  Future<bool> updateUserProfile({String? name, String? phone, String? address, String? ward}) async {
+    if (_currentUser == null) return false;
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      Map<String, dynamic> data = {};
+      if (name != null) data['name'] = name;
+      if (phone != null) data['phone'] = phone;
+      if (address != null) data['address'] = address;
+      if (ward != null) data['ward'] = ward;
+
+      await _authService.updateUserProfile(_currentUser!.id, data);
+      
+      // Update local user object
+      _currentUser = _currentUser!.copyWith(
+        name: name ?? _currentUser!.name,
+        phone: phone ?? _currentUser!.phone,
+        address: address ?? _currentUser!.address,
+        ward: ward ?? _currentUser!.ward,
+      );
+      
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Reset password
   Future<bool> resetPassword(String email) async {
     _isLoading = true;

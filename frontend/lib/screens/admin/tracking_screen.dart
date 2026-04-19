@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../services/location_broadcast_service.dart';
 import '../../config/app_colors.dart';
 import '../../utils/map_styles.dart';
+import '../../utils/map_marker_utils.dart';
 
 class AdminTrackingScreen extends StatefulWidget {
   const AdminTrackingScreen({super.key});
@@ -20,15 +21,22 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
   final _broadcastService = LocationBroadcastService();
 
   final Map<String, Map<String, dynamic>> _liveDrivers = {};
-  final Map<String, Map<String, dynamic>> _liveHouses = {};
+  final Map<String, dynamic> _liveHouses = {};
 
   bool _showTrucks = true;
   bool _showHouses = true;
+  BitmapDescriptor? _truckIcon;
 
   @override
   void initState() {
     super.initState();
+    _initCustomMarkers();
     _startLiveTracking();
+  }
+
+  Future<void> _initCustomMarkers() async {
+    final icon = await MapMarkerUtils.createCustomMarkerBitmap(Icons.local_shipping_rounded, color: AppColors.accent);
+    setState(() => _truckIcon = icon);
   }
 
   void _startLiveTracking() {
@@ -84,7 +92,7 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
           markerId: MarkerId(entry.key),
           position: LatLng((location['lat'] as num).toDouble(), (location['lng'] as num).toDouble()),
           rotation: (location['heading'] as num?)?.toDouble() ?? 0,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          icon: _truckIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
           infoWindow: InfoWindow(title: data['driverName'] ?? 'Truck'),
         ));
       }

@@ -39,6 +39,8 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                   const SizedBox(height: 30),
+                  _buildEditProfileButton(context, user, authProvider),
+                  const SizedBox(height: 16),
                   _buildSignOutButton(context, authProvider),
                   const SizedBox(height: 40),
                 ],
@@ -154,6 +156,111 @@ class ProfileScreen extends StatelessWidget {
       ),
       title: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
       subtitle: Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+    );
+  }
+
+  Widget _buildEditProfileButton(BuildContext context, dynamic user, AuthProvider authProvider) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () => _showEditProfileDialog(context, user, authProvider),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.accent,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.edit_rounded, color: Colors.white, size: 20),
+            SizedBox(width: 12),
+            Text('EDIT PROFILE', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditProfileDialog(BuildContext context, dynamic user, AuthProvider authProvider) {
+    if (user == null) return;
+    final nameController = TextEditingController(text: user.name);
+    final phoneController = TextEditingController(text: user.phone);
+    final addressController = TextEditingController(text: user.address);
+    final wardController = TextEditingController(text: user.ward);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.background,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(25))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          top: 24, left: 24, right: 24,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('Edit Operational Profile', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 24),
+              _buildEditField('Full Name', Icons.person_rounded, nameController),
+              const SizedBox(height: 16),
+              _buildEditField('Contact Number', Icons.phone_iphone_rounded, phoneController),
+              const SizedBox(height: 16),
+              _buildEditField('Service Address', Icons.door_front_door_rounded, addressController),
+              const SizedBox(height: 16),
+              _buildEditField('Assigned Ward', Icons.token_rounded, wardController),
+              const SizedBox(height: 32),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () async {
+                    FocusScope.of(ctx).unfocus();
+                    bool success = await authProvider.updateUserProfile(
+                      name: nameController.text.trim(),
+                      phone: phoneController.text.trim(),
+                      address: addressController.text.trim(),
+                      ward: wardController.text.trim(),
+                    );
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+                        content: Text(success ? 'Profile Successfully Updated!' : 'Failed to Update.'),
+                        backgroundColor: success ? Colors.teal : AppColors.error,
+                      ));
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    backgroundColor: Colors.blueAccent,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  ),
+                  child: const Text('SAVE CHANGES', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEditField(String label, IconData icon, TextEditingController controller) {
+    return TextFormField(
+      controller: controller,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: AppColors.textMuted),
+        prefixIcon: Icon(icon, color: AppColors.accent, size: 20),
+        filled: true,
+        fillColor: AppColors.secondary,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: const BorderSide(color: AppColors.accent)),
+      ),
     );
   }
 

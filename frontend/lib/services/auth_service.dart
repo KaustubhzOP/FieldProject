@@ -14,6 +14,11 @@ class AuthService {
   // Auth state changes stream
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
+  // Update User Profile Method
+  Future<void> updateUserProfile(String userId, Map<String, dynamic> data) async {
+    await _firestore.collection(AppConstants.usersCollection).doc(userId).update(data);
+  }
+
   // Sign up with email and password
   Future<UserModel?> signUp({
     required String email,
