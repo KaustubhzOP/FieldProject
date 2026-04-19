@@ -40,10 +40,13 @@ class ComplaintProvider with ChangeNotifier {
 
   // Get complaints by user
   Stream<List<ComplaintModel>> getComplaintsByUser(String userId) {
-    return _firestoreService.getComplaintsByUser(userId).map((snapshot) {
-      final list = snapshot.docs.map((doc) {
+    // Bypass buggy Firebase Web single-index constraints by dropping the argument and filtering here
+    return _firestoreService.getAllComplaints().map((snapshot) {
+      final docs = snapshot.docs.map((doc) {
         return ComplaintModel.fromJson(doc.data() as Map<String, dynamic>);
-      }).toList();
+      });
+      
+      var list = docs.where((c) => c.raisedBy == userId).toList();
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
@@ -51,10 +54,16 @@ class ComplaintProvider with ChangeNotifier {
 
   // Get all complaints
   Stream<List<ComplaintModel>> getAllComplaints({String? status}) {
-    return _firestoreService.getAllComplaints(status: status).map((snapshot) {
-      final list = snapshot.docs.map((doc) {
+    // Drop the status filter from the Firebase query to avoid index/cache bugs on Flutter Web
+    return _firestoreService.getAllComplaints().map((snapshot) {
+      var list = snapshot.docs.map((doc) {
         return ComplaintModel.fromJson(doc.data() as Map<String, dynamic>);
       }).toList();
+      
+      if (status != null) {
+        list = list.where((c) => c.status == status).toList();
+      }
+      
       list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return list;
     });
