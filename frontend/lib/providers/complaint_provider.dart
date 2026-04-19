@@ -22,8 +22,9 @@ class ComplaintProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      await _firestoreService.addDocument(
+      await _firestoreService.setDocument(
         AppConstants.complaintsCollection,
+        complaint.id,
         complaint.toJson(),
       );
       
@@ -43,7 +44,9 @@ class ComplaintProvider with ChangeNotifier {
     // Bypass buggy Firebase Web single-index constraints by dropping the argument and filtering here
     return _firestoreService.getAllComplaints().map((snapshot) {
       final docs = snapshot.docs.map((doc) {
-        return ComplaintModel.fromJson(doc.data() as Map<String, dynamic>);
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id; // GUARANTEED SYNC WITH NATIVE FIREBASE ID!
+        return ComplaintModel.fromJson(data);
       });
       
       var list = docs.where((c) => c.raisedBy == userId).toList();
@@ -57,7 +60,9 @@ class ComplaintProvider with ChangeNotifier {
     // Drop the status filter from the Firebase query to avoid index/cache bugs on Flutter Web
     return _firestoreService.getAllComplaints().map((snapshot) {
       var list = snapshot.docs.map((doc) {
-        return ComplaintModel.fromJson(doc.data() as Map<String, dynamic>);
+        final data = doc.data() as Map<String, dynamic>;
+        data['id'] = doc.id; // GUARANTEED SYNC WITH NATIVE FIREBASE ID!
+        return ComplaintModel.fromJson(data);
       }).toList();
       
       if (status != null) {

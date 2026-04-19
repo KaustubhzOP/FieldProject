@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/complaint_provider.dart';
@@ -89,6 +90,34 @@ class AdminComplaintManagementScreen extends StatelessWidget {
             const Text('Raised By (User ID):', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent)),
             const SizedBox(height: 4),
             Text(complaint.raisedBy, style: const TextStyle(color: AppColors.textBody, fontSize: 12)),
+            const SizedBox(height: 16),
+            const Text('Location Coordinates:', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent)),
+            const SizedBox(height: 4),
+            Text('[${complaint.location.latitude}, ${complaint.location.longitude}]', style: const TextStyle(color: AppColors.textBody, fontSize: 12)),
+            const SizedBox(height: 16),
+            const Text('Attached Photo:', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accent)),
+            const SizedBox(height: 8),
+            if (complaint.imageUrl != null && complaint.imageUrl!.isNotEmpty)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: Image.memory(
+                  base64Decode(complaint.imageUrl!.split(',').last.replaceAll('\\n', '').replaceAll(' ', '+')),
+                  height: 180, 
+                  width: double.infinity, 
+                  fit: BoxFit.cover,
+                  errorBuilder: (ctx, err, stack) => Container(
+                    height: 100, color: Colors.red.withOpacity(0.1),
+                    child: Center(child: Text('Image Corrupt or Too Large for Web', style: TextStyle(color: Colors.red))),
+                  ),
+                ),
+              )
+            else
+              Container(
+                height: 60,
+                width: double.infinity,
+                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(8)),
+                child: const Center(child: Text('No photo attached', style: TextStyle(color: Colors.white54))),
+              ),
           ],
         ),
         actions: [

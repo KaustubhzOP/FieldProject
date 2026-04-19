@@ -12,6 +12,7 @@ class ComplaintModel {
   final DateTime? resolvedAt;
   final int? rating;
   final String? feedback;
+  final String? imageUrl;
 
   ComplaintModel({
     required this.id,
@@ -25,6 +26,7 @@ class ComplaintModel {
     this.resolvedAt,
     this.rating,
     this.feedback,
+    this.imageUrl,
   });
 
   factory ComplaintModel.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class ComplaintModel {
           : null,
       rating: json['rating'],
       feedback: json['feedback'],
+      imageUrl: json['imageUrl'],
     );
   }
 
@@ -62,6 +65,7 @@ class ComplaintModel {
       'resolvedAt': resolvedAt?.toIso8601String(),
       'rating': rating,
       'feedback': feedback,
+      'imageUrl': imageUrl,
     };
   }
 
@@ -77,6 +81,7 @@ class ComplaintModel {
     DateTime? resolvedAt,
     int? rating,
     String? feedback,
+    String? imageUrl,
   }) {
     return ComplaintModel(
       id: id ?? this.id,
@@ -90,6 +95,7 @@ class ComplaintModel {
       resolvedAt: resolvedAt ?? this.resolvedAt,
       rating: rating ?? this.rating,
       feedback: feedback ?? this.feedback,
+      imageUrl: imageUrl ?? this.imageUrl,
     );
   }
 }

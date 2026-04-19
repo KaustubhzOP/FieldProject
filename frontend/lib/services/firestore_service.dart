@@ -15,6 +15,11 @@ class FirestoreService {
     return docRef.id;
   }
 
+  // Generic set document with specific ID
+  Future<void> setDocument(String collection, String docId, Map<String, dynamic> data) async {
+    await _firestore.collection(collection).doc(docId).set(data);
+  }
+
   // Generic update document
   Future<void> updateDocument(
     String collection,

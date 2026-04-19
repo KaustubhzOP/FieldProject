@@ -3,6 +3,8 @@ import '../../config/app_colors.dart';
 import 'package:provider/provider.dart';
 import '../../providers/complaint_provider.dart';
 import '../../providers/auth_provider.dart';
+import 'dart:convert';
+import 'package:image_picker/image_picker.dart';
 import '../../models/complaint.dart';
 import '../../models/driver.dart';
 
@@ -18,6 +20,51 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   String _selectedType = 'Missed Collection';
   String _priority = 'Standard';
   final _descriptionController = TextEditingController();
+  String? _base64Image;
+
+  Future<void> _pickImage(StateSetter setModalState, ImageSource source) async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: source, imageQuality: 25);
+    if (pickedFile != null) {
+      final bytes = await pickedFile.readAsBytes();
+      setModalState(() {
+        _base64Image = base64Encode(bytes);
+      });
+      setState(() {
+        _base64Image = _base64Image;
+      });
+    }
+  }
+
+  void _showImagePickerOptions(StateSetter setModalState) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.secondary,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt, color: AppColors.accent),
+              title: const Text('Take Photo', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(setModalState, ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library, color: AppColors.accent),
+              title: const Text('Choose from Gallery', style: TextStyle(color: Colors.white)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(setModalState, ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   final List<String> _complaintTypes = [
     'Missed Collection',
@@ -201,6 +248,34 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                     ),
                     validator: (val) => val == null || val.isEmpty ? 'Description required' : null,
                   ),
+                  const SizedBox(height: 16),
+                  const Text('Attach Photo', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textMuted)),
+                  const SizedBox(height: 8),
+                  GestureDetector(
+                    onTap: () => _showImagePickerOptions(setModalState),
+                    child: Container(
+                      height: 100,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: AppColors.secondary,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.white24),
+                      ),
+                      child: _base64Image != null
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.memory(base64Decode(_base64Image!), fit: BoxFit.cover),
+                            )
+                          : const Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.add_a_photo, color: Colors.white54, size: 32),
+                                SizedBox(height: 8),
+                                Text('Tap to Upload', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                              ],
+                            ),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -216,6 +291,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                             status: 'pending',
                             raisedBy: userId,
                             createdAt: DateTime.now(),
+                            imageUrl: _base64Image,
                           );
                           
                           context.read<ComplaintProvider>().createComplaint(newComplaint).then((success) {
@@ -226,6 +302,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                                 backgroundColor: success ? Colors.teal : AppColors.error,
                               ));
                               _descriptionController.clear();
+                              setState(() => _base64Image = null);
                             }
                           });
                         }
