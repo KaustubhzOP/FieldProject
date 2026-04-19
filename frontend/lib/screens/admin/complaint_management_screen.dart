@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../providers/complaint_provider.dart';
+import '../../models/complaint.dart';
+import '../../config/app_colors.dart';
 
 class AdminComplaintManagementScreen extends StatelessWidget {
   const AdminComplaintManagementScreen({super.key});
@@ -8,6 +12,7 @@ class AdminComplaintManagementScreen extends StatelessWidget {
     return DefaultTabController(
       length: 3,
       child: Scaffold(
+        backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text('Complaint Management'),
           bottom: const TabBar(

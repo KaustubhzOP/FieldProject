@@ -74,15 +74,12 @@ class FirestoreService {
     return _firestore
         .collection(AppConstants.complaintsCollection)
         .where('raisedBy', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots();
   }
 
   // Get all complaints
   Stream<QuerySnapshot> getAllComplaints({String? status}) {
-    Query query = _firestore
-        .collection(AppConstants.complaintsCollection)
-        .orderBy('createdAt', descending: true);
+    Query query = _firestore.collection(AppConstants.complaintsCollection);
 
     if (status != null) {
       query = query.where('status', isEqualTo: status);

@@ -21,15 +21,16 @@ class _AdminHomeRequestsScreenState extends State<AdminHomeRequestsScreen> {
         title: const Text('Resident Verifications'),
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('users')
-            .where('homeStatus', whereIn: ['pending_approval', 'pending_removal'])
-            .snapshots(),
+        stream: FirebaseFirestore.instance.collection('users').snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) return Center(child: Text('Error: ${snapshot.error}'));
           if (!snapshot.hasData) return const Center(child: CircularProgressIndicator());
 
-          final docs = snapshot.data!.docs;
+          // Filter locally to avoid index or parsing bugs!
+          final docs = snapshot.data!.docs.where((doc) {
+            final status = (doc.data() as Map<String, dynamic>)['homeStatus'];
+            return status == 'pending_approval' || status == 'pending_removal';
+          }).toList();
           if (docs.isEmpty) {
             return const Center(
               child: Column(

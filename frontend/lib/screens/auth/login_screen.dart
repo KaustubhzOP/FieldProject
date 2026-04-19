@@ -188,22 +188,22 @@ class _LoginScreenState extends State<LoginScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildRoleChip('Admin', 'admin1@gmail.com'),
+            _buildRoleChip('Admin', 'superadmin@smartwaste.com', '123456'),
             const SizedBox(width: 12),
-            _buildRoleChip('Driver', 'driver1@gmail.com'),
+            _buildRoleChip('Driver', 'driver1@smartwaste.com', 'Demo@123'),
             const SizedBox(width: 12),
-            _buildRoleChip('Resident', 'res1_1@demo.com'),
+            _buildRoleChip('Resident', 'resident1@smartwaste.com', 'Demo@123'),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildRoleChip(String label, String email) {
+  Widget _buildRoleChip(String label, String email, String password) {
     return InkWell(
       onTap: () {
         _emailController.text = email;
-        _passwordController.text = '123456';
+        _passwordController.text = password;
         _handleLogin();
       },
       child: Container(

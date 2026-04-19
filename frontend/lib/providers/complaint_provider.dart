@@ -41,18 +41,22 @@ class ComplaintProvider with ChangeNotifier {
   // Get complaints by user
   Stream<List<ComplaintModel>> getComplaintsByUser(String userId) {
     return _firestoreService.getComplaintsByUser(userId).map((snapshot) {
-      return snapshot.docs.map((doc) {
+      final list = snapshot.docs.map((doc) {
         return ComplaintModel.fromJson(doc.data() as Map<String, dynamic>);
       }).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     });
   }
 
   // Get all complaints
   Stream<List<ComplaintModel>> getAllComplaints({String? status}) {
     return _firestoreService.getAllComplaints(status: status).map((snapshot) {
-      return snapshot.docs.map((doc) {
+      final list = snapshot.docs.map((doc) {
         return ComplaintModel.fromJson(doc.data() as Map<String, dynamic>);
       }).toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
     });
   }
 

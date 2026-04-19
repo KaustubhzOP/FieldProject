@@ -103,13 +103,26 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
   Future<void> _registerHome() async {
     setState(() => _isLoading = true);
     try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+            throw 'Location permissions are denied';
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        throw 'Location permissions are permanently denied.';
+      }
+
       final pos = await Geolocator.getCurrentPosition();
       final user = context.read<AuthProvider>().currentUser;
       if (user != null) {
         await _authService.requestHomeVerification(user.id, pos.latitude, pos.longitude);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sent to Admin for Verification!'), backgroundColor: Colors.teal));
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString()), backgroundColor: AppColors.error));
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

@@ -1,4 +1,10 @@
 import 'package:flutter/material.dart';
+import '../../config/app_colors.dart';
+import 'package:provider/provider.dart';
+import '../../providers/complaint_provider.dart';
+import '../../providers/auth_provider.dart';
+import '../../models/complaint.dart';
+import '../../models/driver.dart';
 
 class ComplaintScreen extends StatefulWidget {
   const ComplaintScreen({super.key});
@@ -56,43 +62,62 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   }
 
   Widget _buildTabContent(String status) {
-    // Dummy filters for demo
     bool isPending = status == 'pending';
-    
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            isPending ? 'Active Issues' : 'Completed Requests',
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-          ),
-          const SizedBox(height: 12),
-          if (isPending) ...[
-            _complaintSummaryItem('CMP-101', 'Missed Collection', 'Under Review', Colors.orange, '2 hrs ago'),
-            _complaintSummaryItem('CMP-105', 'Late Arrival', 'In Progress', Colors.blue, '5 hrs ago'),
-          ] else ...[
-            _complaintSummaryItem('CMP-099', 'Spillage Issues', 'Resolved', Colors.green, '昨天'),
-            _complaintSummaryItem('CMP-092', 'Staff Behavior', 'Closed', Colors.grey, '3 days ago'),
-          ],
-        ],
-      ),
+    final user = context.read<AuthProvider>().currentUser;
+    if (user == null) return const SizedBox();
+
+    return StreamBuilder<List<ComplaintModel>>(
+      stream: context.read<ComplaintProvider>().getComplaintsByUser(user.id),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Center(child: Text(isPending ? 'No active issues' : 'No resolved requests', style: const TextStyle(color: AppColors.textMuted)));
+        }
+
+        final filtered = snapshot.data!.where((c) {
+           if (isPending) return c.status == 'pending' || c.status == 'in_progress';
+           return c.status == 'resolved';
+        }).toList();
+
+        if (filtered.isEmpty) {
+          return Center(child: Text(isPending ? 'No active issues' : 'No resolved requests', style: const TextStyle(color: AppColors.textMuted)));
+        }
+
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: filtered.length,
+          itemBuilder: (context, index) {
+            final c = filtered[index];
+            final color = c.status == 'resolved' ? Colors.green : (c.status == 'in_progress' ? Colors.blue : Colors.orange);
+            final timeStr = "${c.createdAt.day}/${c.createdAt.month}/${c.createdAt.year}";
+            return _complaintSummaryItem(c.id, c.type, c.status.toUpperCase(), color, timeStr, c.description);
+          },
+        );
+      },
     );
   }
 
-  Widget _complaintSummaryItem(String id, String type, String status, Color color, String time) {
+  Widget _complaintSummaryItem(String id, String type, String status, Color color, String time, String desc) {
     return Card(
       elevation: 0,
-      color: Colors.grey.shade50,
+      color: AppColors.secondary,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(15), 
-        side: BorderSide(color: Colors.grey.shade200)
+        side: BorderSide(color: Colors.white.withOpacity(0.05))
       ),
       child: ListTile(
-        title: Text(id, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('$type • $time'),
+        title: Text(id, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('$type • $time', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+            const SizedBox(height: 4),
+            Text(desc, style: const TextStyle(color: AppColors.textBody, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
+          ],
+        ),
         trailing: Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
@@ -109,6 +134,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) => Padding(
@@ -123,21 +149,24 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Raise New Complaint', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                  const Text('Raise New Complaint', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white)),
                   const SizedBox(height: 20),
-                  const Text('Complaint Type', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const Text('Complaint Type', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textMuted)),
                   const SizedBox(height: 4),
                   DropdownButtonFormField<String>(
                     value: _selectedType,
+                    dropdownColor: AppColors.secondary,
+                    style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white24)),
                     ),
                     items: _complaintTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
                     onChanged: (value) => setModalState(() => _selectedType = value!),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Priority Level', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const Text('Priority Level', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textMuted)),
                   const SizedBox(height: 8),
                   // Fix for Overflow: use Wrap instead of Row
                   Wrap(
@@ -151,20 +180,24 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                           setModalState(() => _priority = p);
                           setState(() => _priority = p);
                         },
-                        selectedColor: Colors.blue.withOpacity(0.2),
-                        labelStyle: TextStyle(color: isSelected ? Colors.blue : Colors.black),
+                        selectedColor: AppColors.accent.withOpacity(0.2),
+                        backgroundColor: AppColors.secondary,
+                        labelStyle: TextStyle(color: isSelected ? AppColors.accent : Colors.white),
                       );
                     }).toList(),
                   ),
                   const SizedBox(height: 16),
-                  const Text('Description', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                  const Text('Description', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textMuted)),
                   const SizedBox(height: 4),
                   TextFormField(
                     controller: _descriptionController,
                     maxLines: 4,
+                    style: const TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Enter details here...',
+                      hintStyle: const TextStyle(color: Colors.white38),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white24)),
                     ),
                     validator: (val) => val == null || val.isEmpty ? 'Description required' : null,
                   ),
@@ -174,9 +207,27 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
-                          Navigator.pop(context);
-                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Complaint Submitted!')));
-                          _descriptionController.clear();
+                          final userId = context.read<AuthProvider>().currentUser?.id ?? 'unknown';
+                          final newComplaint = ComplaintModel(
+                            id: 'CMP-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
+                            type: _selectedType,
+                            description: '[Priority: $_priority]\n${_descriptionController.text}',
+                            location: LocationModel(latitude: 0, longitude: 0),
+                            status: 'pending',
+                            raisedBy: userId,
+                            createdAt: DateTime.now(),
+                          );
+                          
+                          context.read<ComplaintProvider>().createComplaint(newComplaint).then((success) {
+                            if (mounted) {
+                              Navigator.pop(context);
+                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                                content: Text(success ? 'Complaint Submitted!' : 'Submission Failed'),
+                                backgroundColor: success ? Colors.teal : AppColors.error,
+                              ));
+                              _descriptionController.clear();
+                            }
+                          });
                         }
                       },
                       icon: const Icon(Icons.send),

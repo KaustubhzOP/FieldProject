@@ -70,10 +70,27 @@ class AuthService {
     required String password,
   }) async {
     try {
-      UserCredential result = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
+      UserCredential result;
+      try {
+        result = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } on FirebaseAuthException catch (e) {
+        // Auto-create the demo admin account if it wasn't registered in Firebase Auth yet
+        if (email == 'superadmin@smartwaste.com' && password == '123456') {
+          try {
+            result = await _auth.createUserWithEmailAndPassword(
+              email: email,
+              password: password,
+            );
+          } catch (createError) {
+             throw 'Please try logging in again, or ensure the password is correct if the account exists.';
+          }
+        } else {
+          rethrow;
+        }
+      }
 
       User? user = result.user;
 
