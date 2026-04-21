@@ -44,8 +44,8 @@ class ComplaintProvider with ChangeNotifier {
     // Bypass buggy Firebase Web single-index constraints by dropping the argument and filtering here
     return _firestoreService.getAllComplaints().map((snapshot) {
       final docs = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id; // GUARANTEED SYNC WITH NATIVE FIREBASE ID!
+        final data = Map<String, dynamic>.from(doc.data() as Map); // Mutable copy!
+        data['id'] = doc.id;
         return ComplaintModel.fromJson(data);
       });
       
@@ -60,8 +60,8 @@ class ComplaintProvider with ChangeNotifier {
     // Drop the status filter from the Firebase query to avoid index/cache bugs on Flutter Web
     return _firestoreService.getAllComplaints().map((snapshot) {
       var list = snapshot.docs.map((doc) {
-        final data = doc.data() as Map<String, dynamic>;
-        data['id'] = doc.id; // GUARANTEED SYNC WITH NATIVE FIREBASE ID!
+        final data = Map<String, dynamic>.from(doc.data() as Map); // Mutable copy!
+        data['id'] = doc.id;
         return ComplaintModel.fromJson(data);
       }).toList();
       
@@ -132,9 +132,26 @@ class ComplaintProvider with ChangeNotifier {
         {
           'rating': rating,
           'feedback': feedback,
+          'status': 'resolved',
         },
       );
       
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Delete complaint
+  Future<bool> deleteComplaint(String complaintId) async {
+    try {
+      await _firestoreService.deleteDocument(
+        AppConstants.complaintsCollection,
+        complaintId,
+      );
       notifyListeners();
       return true;
     } catch (e) {

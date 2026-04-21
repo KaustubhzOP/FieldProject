@@ -7,9 +7,20 @@ echo ============================================================
 echo    SMART WASTE COLLECTION MONITORING SYSTEM
 echo    Automated Setup and Build Script
 echo ============================================================
+echo ============================================================
 echo.
 
+:: Setup Environment (Hardcoded for this workspace)
+set FLUTTER_BIN=C:\Users\Adhyatmika\flutter\bin\flutter.bat
+set JAVA_HOME=C:\Program Files\Java\jdk-17
+set PATH=%PATH%;C:\Users\Adhyatmika\flutter\bin;%JAVA_HOME%\bin
+
 :: Check Flutter
+if not exist "%FLUTTER_BIN%" (
+    echo ERROR: Flutter not found at %FLUTTER_BIN%
+    pause
+    exit /b 1
+)
 if not exist "frontend\android\app\google-services.json" (
     echo.
     echo FIREBASE SETUP REQUIRED:
@@ -31,7 +42,7 @@ cd frontend
 
 :: Install dependencies
 echo [3/6] Installing dependencies...
-flutter pub get
+call "%FLUTTER_BIN%" pub get
 if %errorlevel% neq 0 (
     echo ERROR: Failed to install dependencies!
     cd ..
@@ -43,12 +54,12 @@ echo.
 
 :: Clean build
 echo [4/6] Cleaning build...
-flutter clean
+call "%FLUTTER_BIN%" clean
 echo.
 
 :: Build APK
 echo [5/6] Building APK (3-5 minutes)...
-flutter build apk --debug
+call "%FLUTTER_BIN%" build apk --debug
 if %errorlevel% neq 0 (
     echo ERROR: Build failed! Check configuration.
     cd ..

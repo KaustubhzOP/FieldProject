@@ -15,18 +15,21 @@ class ResidentHome extends StatefulWidget {
 class _ResidentHomeState extends State<ResidentHome> {
   int _selectedIndex = 0;
   
-  final List<Widget> _screens = [
-    const ResidentHomeScreen(),
-    const ComplaintScreen(),
-    const CollectionHistoryScreen(),
-    const ProfileScreen(),
-  ];
+  Widget _buildBody() {
+    switch (_selectedIndex) {
+      case 0: return const ResidentHomeScreen();
+      case 1: return const ComplaintScreen();
+      case 2: return const CollectionHistoryScreen();
+      case 3: return const ProfileScreen();
+      default: return const ResidentHomeScreen();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: _screens[_selectedIndex],
+      body: _buildBody(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppColors.secondary,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../config/app_colors.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class AdminHomeRequestsScreen extends StatefulWidget {
   const AdminHomeRequestsScreen({super.key});
@@ -90,24 +91,50 @@ class _AdminHomeRequestsScreenState extends State<AdminHomeRequestsScreen> {
                     ),
                     if (!isRemoval)
                       Container(
+                        height: 120,
                         width: double.infinity,
                         margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: AppColors.background,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.blue.withOpacity(0.2)),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white10),
                         ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: GoogleMap(
+                            initialCameraPosition: CameraPosition(
+                              target: LatLng(
+                                (data['pendingLat'] as num).toDouble(),
+                                (data['pendingLng'] as num).toDouble(),
+                              ),
+                              zoom: 15,
+                            ),
+                            liteModeEnabled: true,
+                            zoomGesturesEnabled: false,
+                            scrollGesturesEnabled: false,
+                            myLocationButtonEnabled: false,
+                            mapToolbarEnabled: false,
+                            markers: {
+                              Marker(
+                                markerId: MarkerId('req_${doc.id}'),
+                                position: LatLng(
+                                  (data['pendingLat'] as num).toDouble(),
+                                  (data['pendingLng'] as num).toDouble(),
+                                ),
+                              ),
+                            },
+                          ),
+                        ),
+                      ),
+                    
+                    if (!isRemoval)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
                         child: Row(
                           children: [
-                            const Icon(Icons.location_on, color: Colors.blueAccent, size: 18),
+                            const Icon(Icons.location_on, color: Colors.blueAccent, size: 14),
                             const SizedBox(width: 8),
-                            Expanded(
-                              child: Text(
-                                'GPS Target: [$locText]',
-                                style: const TextStyle(fontSize: 13, color: AppColors.textBody),
-                              ),
-                            ),
+                            Expanded(child: Text('GPS Target: [$locText]', style: const TextStyle(fontSize: 11, color: AppColors.textMuted))),
                           ],
                         ),
                       ),

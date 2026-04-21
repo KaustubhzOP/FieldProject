@@ -253,13 +253,13 @@ class AuthService {
     return null;
   }
 
-  // Update user data
+  // Update user data with safety merge
   Future<void> updateUserData(UserModel user) async {
     try {
       await _firestore
           .collection(AppConstants.usersCollection)
           .doc(user.id)
-          .update(user.toJson());
+          .set(user.toJson(), SetOptions(merge: true));
     } catch (e) {
       throw AppConstants.errorGeneric;
     }
@@ -330,6 +330,21 @@ class AuthService {
       });
     } catch (e) {
       throw 'Removal failed: $e';
+    }
+  }
+
+  // Demo: Reset home status to allow testing of location flows
+  Future<void> resetHomeStatus(String userId) async {
+    try {
+      await _firestore.collection(AppConstants.usersCollection).doc(userId).update({
+        'homeLat': FieldValue.delete(),
+        'homeLng': FieldValue.delete(),
+        'pendingLat': FieldValue.delete(),
+        'pendingLng': FieldValue.delete(),
+        'homeStatus': 'none',
+      });
+    } catch (e) {
+      throw 'Failed to reset location: $e';
     }
   }
 

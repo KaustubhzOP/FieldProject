@@ -48,7 +48,10 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(padding: EdgeInsets.fromLTRB(20, 20, 20, 10), child: Text('SELECT FIELD OPERATOR', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2))),
+          const Padding(
+            padding: EdgeInsets.fromLTRB(20, 20, 20, 10), 
+            child: Text('SELECT FIELD OPERATOR', style: TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.2))
+          ),
           _buildDriverSelector(),
           const SizedBox(height: 20),
           Expanded(
@@ -63,49 +66,89 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
   }
 
   Widget _buildDriverSelector() {
-    final List<Map<String, String>> staticDrivers = [
-      {'id': 'dummy_1', 'name': 'Driver 1 (Alpha)'},
-      {'id': 'dummy_2', 'name': 'Driver 2 (Beta)'},
-      {'id': 'dummy_3', 'name': 'Driver 3 (Gamma)'},
-      {'id': 'dummy_4', 'name': 'Driver 4 (Delta)'},
-      {'id': 'dummy_5', 'name': 'Driver 5 (Epsilon)'},
+    // These are the official 5 drivers we always want to show
+    final List<Map<String, String>> fallbackDrivers = [
+      {'id': 'driver_1', 'name': 'Driver 1 (Alpha)', 'truck': 'Truck Alpha'},
+      {'id': 'driver_2', 'name': 'Driver 2 (Beta)', 'truck': 'Truck Beta'},
+      {'id': 'driver_3', 'name': 'Driver 3 (Gamma)', 'truck': 'Truck Gamma'},
+      {'id': 'driver_4', 'name': 'Driver 4 (Delta)', 'truck': 'Truck Delta'},
+      {'id': 'driver_5', 'name': 'Driver 5 (Epsilon)', 'truck': 'Truck Epsilon'},
     ];
 
-    return SizedBox(
-      height: 100,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        itemCount: staticDrivers.length,
-        itemBuilder: (context, index) {
-          final driver = staticDrivers[index];
-          bool isSelected = _selectedDriverId == driver['id'];
-          return GestureDetector(
-            onTap: () => setState(() { 
-              _selectedDriverId = driver['id']; 
-              _selectedDriverName = driver['name']; 
-            }),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              width: 100,
-              margin: const EdgeInsets.only(right: 15),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.accent : AppColors.secondary,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: isSelected ? Colors.white24 : Colors.transparent),
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person_pin_rounded, color: isSelected ? Colors.white : AppColors.textMuted, size: 30),
-                  const SizedBox(height: 8),
-                  Text(driver['name']!, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : AppColors.textMuted), maxLines: 1, overflow: TextOverflow.ellipsis),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance.collection('drivers').snapshots(),
+      builder: (context, snapshot) {
+        // Collect drivers from Firestore
+        final List<Map<String, String>> displayDrivers = [];
+        final Set<String> existingIds = {};
+
+        if (snapshot.hasData) {
+          for (var doc in snapshot.data!.docs) {
+            final data = doc.data() as Map<String, dynamic>;
+            final id = doc.id;
+            existingIds.add(id);
+            displayDrivers.add({
+              'id': id,
+              'name': data['name'] ?? 'Unknown Driver',
+              'truck': data['truckLabel'] ?? 'No Truck',
+            });
+          }
+        }
+
+        // Fill remaining from fallback list (if database is empty or quota hit)
+        for (var fallback in fallbackDrivers) {
+          if (!existingIds.contains(fallback['id'])) {
+            displayDrivers.add(fallback);
+          }
+        }
+
+        // Sort them driver_1 to driver_5
+        displayDrivers.sort((a, b) => a['id']!.compareTo(b['id']!));
+
+        return SizedBox(
+          height: 100,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            itemCount: displayDrivers.length,
+            itemBuilder: (context, index) {
+              final driver = displayDrivers[index];
+              final String id = driver['id']!;
+              final String name = driver['name']!;
+              final String truck = driver['truck']!;
+              
+              bool isSelected = _selectedDriverId == id;
+
+              return GestureDetector(
+                onTap: () => setState(() { 
+                  _selectedDriverId = id; 
+                  _selectedDriverName = name; 
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 110,
+                  margin: const EdgeInsets.only(right: 15),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.accent : AppColors.secondary,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: isSelected ? Colors.white24 : Colors.transparent),
+                    boxShadow: isSelected ? [BoxShadow(color: AppColors.accent.withOpacity(0.3), blurRadius: 10)] : null,
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.local_shipping_rounded, color: isSelected ? Colors.white : AppColors.textMuted, size: 24),
+                      const SizedBox(height: 8),
+                      Text(name, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(truck, style: TextStyle(fontSize: 9, color: isSelected ? Colors.white70 : AppColors.textMuted)),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -163,8 +206,12 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
 
   Widget _buildAssignmentFooter() {
     return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(color: AppColors.secondary, borderRadius: const BorderRadius.vertical(top: Radius.circular(30)), boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 20)]),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
+      decoration: BoxDecoration(
+        color: AppColors.secondary, 
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)), 
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 20)]
+      ),
       child: SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -176,10 +223,19 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
                 Expanded(child: Text('Confirming ${_selectedRoute!['name']} for Operator $_selectedDriverName', style: const TextStyle(color: AppColors.textBody, fontSize: 13))),
               ],
             ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isSubmitting ? null : _assignRoute,
-              child: _isSubmitting ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('DEPLOY ASSIGNMENT'),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 55,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _assignRoute,
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                ),
+                child: _isSubmitting 
+                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                  : const Text('DEPLOY ASSIGNMENT', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
             ),
           ],
         ),
@@ -192,13 +248,22 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
     try {
       final sanitizedRoute = Map<String, dynamic>.from(_selectedRoute!);
       sanitizedRoute.remove('color');
+      
       await _authService.assignRouteToDriver(_selectedDriverId!, sanitizedRoute, ward: _selectedRoute!['ward']);
+      
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Deployment successful!'), backgroundColor: Colors.teal, behavior: SnackBarBehavior.floating));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Deployment successful!'), backgroundColor: Colors.teal, behavior: SnackBarBehavior.floating)
+        );
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Critical Error: $e'), backgroundColor: AppColors.error));
+      debugPrint('[ASSIGN] Error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Critical Error: $e'), backgroundColor: AppColors.error, behavior: SnackBarBehavior.floating)
+        );
+      }
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }

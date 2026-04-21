@@ -82,15 +82,9 @@ class FirestoreService {
         .snapshots();
   }
 
-  // Get all complaints
-  Stream<QuerySnapshot> getAllComplaints({String? status}) {
-    Query query = _firestore.collection(AppConstants.complaintsCollection);
-
-    if (status != null) {
-      query = query.where('status', isEqualTo: status);
-    }
-
-    return query.snapshots();
+  // Get all complaints (Drop single-field filters to avoid Firebase Web Index constraints)
+  Stream<QuerySnapshot> getAllComplaints() {
+    return _firestore.collection(AppConstants.complaintsCollection).snapshots();
   }
 
   // Get routes by driver

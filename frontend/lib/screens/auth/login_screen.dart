@@ -190,7 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
           children: [
             _buildRoleChip('Admin', 'superadmin@smartwaste.com', '123456'),
             const SizedBox(width: 12),
-            _buildRoleChip('Driver', 'driver1@smartwaste.com', 'Demo@123'),
+            _buildRoleChip('Driver', 'driver1@gmail.com', '123456'),
             const SizedBox(width: 12),
             _buildRoleChip('Resident', 'resident1@smartwaste.com', 'Demo@123'),
           ],

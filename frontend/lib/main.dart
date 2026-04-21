@@ -7,10 +7,13 @@ import 'providers/auth_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/complaint_provider.dart';
 import 'providers/route_provider.dart';
+import 'providers/collection_provider.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/resident/resident_home.dart';
 import 'screens/driver/driver_home.dart';
 import 'screens/admin/admin_home.dart';
+
+import 'services/simulation_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,6 +34,9 @@ void main() async {
   } else {
     await Firebase.initializeApp();
   }
+
+  // Start Background Simulation
+  await FleetSimulationService().initialize();
   
   runApp(const SmartWasteApp());
 }
@@ -46,6 +52,7 @@ class SmartWasteApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => LocationProvider()),
         ChangeNotifierProvider(create: (_) => ComplaintProvider()),
         ChangeNotifierProvider(create: (_) => RouteProvider()),
+        ChangeNotifierProvider(create: (_) => CollectionProvider()),
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, child) {

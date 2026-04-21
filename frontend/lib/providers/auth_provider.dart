@@ -3,17 +3,25 @@ import '../models/user.dart';
 import '../services/auth_service.dart';
 import '../utils/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
   
   UserModel? _currentUser;
+  LatLng? _sessionSelection;
   bool _isLoading = false;
   String? _error;
 
   UserModel? get currentUser => _currentUser;
+  LatLng? get sessionSelection => _sessionSelection;
   bool get isLoading => _isLoading;
   String? get error => _error;
+
+  void setSessionSelection(LatLng? pos) {
+    _sessionSelection = pos;
+    notifyListeners();
+  }
   bool get isLoggedIn => _currentUser != null;
   String? get userRole => _currentUser?.role;
 
@@ -206,6 +214,41 @@ class AuthProvider with ChangeNotifier {
 
     try {
       await _authService.resetPassword(email);
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = e.toString();
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Update Profile
+  Future<bool> updateProfile({
+    required String name,
+    required String phone,
+    required String address,
+    required String ward,
+  }) async {
+    if (_currentUser == null) return false;
+    
+    _isLoading = true;
+    _error = null;
+    notifyListeners();
+
+    try {
+      final updatedUser = _currentUser!.copyWith(
+        name: name,
+        phone: phone,
+        address: address,
+        ward: ward,
+      );
+
+      await _authService.updateUserData(updatedUser);
+      _currentUser = updatedUser;
+      
       _isLoading = false;
       notifyListeners();
       return true;

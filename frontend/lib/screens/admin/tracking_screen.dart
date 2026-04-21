@@ -6,6 +6,7 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../services/location_broadcast_service.dart';
 import '../../config/app_colors.dart';
 import '../../utils/map_styles.dart';
+import '../../utils/map_marker_util.dart';
 
 class AdminTrackingScreen extends StatefulWidget {
   const AdminTrackingScreen({super.key});
@@ -21,14 +22,37 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
 
   final Map<String, Map<String, dynamic>> _liveDrivers = {};
   final Map<String, Map<String, dynamic>> _liveHouses = {};
+  final Map<String, Map<String, dynamic>> _pendingResidents = {};
 
   bool _showTrucks = true;
   bool _showHouses = true;
+  BitmapDescriptor? _truckIcon;
+  BitmapDescriptor? _homeIcon;
 
   @override
   void initState() {
     super.initState();
+    _loadIcons();
     _startLiveTracking();
+  }
+
+  Future<void> _loadIcons() async {
+    final truck = await MapMarkerUtil.createCustomMarker(
+      icon: Icons.local_shipping_rounded,
+      color: AppColors.accent,
+      size: 100,
+    );
+    final home = await MapMarkerUtil.createCustomMarker(
+      icon: Icons.home_rounded,
+      color: Colors.redAccent,
+      size: 100,
+    );
+    if (mounted) {
+      setState(() {
+        _truckIcon = truck;
+        _homeIcon = home;
+      });
+    }
   }
 
   void _startLiveTracking() {
@@ -51,6 +75,16 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
         }
       });
     });
+
+    FirebaseFirestore.instance.collection('users').where('homeStatus', isEqualTo: 'pending_approval').snapshots().listen((snapshot) {
+      if (!mounted) return;
+      setState(() {
+        _pendingResidents.clear();
+        for (var doc in snapshot.docs) {
+          _pendingResidents[doc.id] = doc.data();
+        }
+      });
+    });
   }
 
   @override
@@ -69,8 +103,23 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
         markers.add(Marker(
           markerId: MarkerId('house_${entry.key}'),
           position: LatLng(data['homeLat'], data['homeLng']),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+          icon: _homeIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
           infoWindow: InfoWindow(title: data['name'] ?? 'Resident'),
+        ));
+      }
+      
+      // Add Pending Residents as Pulsing Yellow/Orange Markers
+      for (var entry in _pendingResidents.entries) {
+        final data = entry.value;
+        if (data['pendingLat'] == null) continue;
+        markers.add(Marker(
+          markerId: MarkerId('pending_${entry.key}'),
+          position: LatLng(data['pendingLat'], data['pendingLng']),
+          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueOrange),
+          infoWindow: InfoWindow(
+            title: 'VERIFICATION PENDING',
+            snippet: data['name'] ?? 'Guest Resident',
+          ),
         ));
       }
     }
@@ -84,8 +133,11 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
           markerId: MarkerId(entry.key),
           position: LatLng((location['lat'] as num).toDouble(), (location['lng'] as num).toDouble()),
           rotation: (location['heading'] as num?)?.toDouble() ?? 0,
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
-          infoWindow: InfoWindow(title: data['driverName'] ?? 'Truck'),
+          icon: _truckIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+          infoWindow: InfoWindow(
+            title: data['name'] ?? data['driverName'] ?? 'Truck',
+            snippet: data['truckLabel'] ?? 'Fleet Vehicle',
+          ),
         ));
       }
     }
@@ -145,7 +197,8 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
             final entry = _liveDrivers.entries.elementAt(index);
             final data = entry.value;
             final location = data['liveLocation'];
-            final name = data['driverName'] ?? 'Driver ${index + 1}';
+            final name = data['name'] ?? data['driverName'] ?? 'Driver ${index + 1}';
+            final truck = data['truckLabel'] ?? 'Truck';
             
             return Padding(
               padding: const EdgeInsets.only(right: 12),
@@ -170,6 +223,7 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis),
+                              Text(truck, style: TextStyle(color: AppColors.textMuted.withOpacity(0.7), fontSize: 10)),
                               const SizedBox(height: 4),
                               Row(
                                 children: [
@@ -209,12 +263,16 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
   }
 
   Widget _buildMapBtn(IconData icon, VoidCallback tap) {
-    return InkWell(
-      onTap: tap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.8), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
-        child: Icon(icon, color: Colors.white, size: 20),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: tap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.8), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
       ),
     );
   }

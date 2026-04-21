@@ -7,6 +7,7 @@ import 'package:geolocator/geolocator.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/map_styles.dart';
 import '../../config/app_colors.dart';
+import '../../utils/map_marker_util.dart';
 
 class DriverRouteScreen extends StatefulWidget {
   const DriverRouteScreen({super.key});
@@ -19,6 +20,7 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
   GoogleMapController? _mapController;
   Position? _currentPos;
   BitmapDescriptor? _truckIcon;
+  BitmapDescriptor? _homeIcon;
   final Set<String> _collectedIds = {};
   
   @override
@@ -36,11 +38,22 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
   }
 
   Future<void> _loadIcons() async {
-    final icon = await BitmapDescriptor.fromAssetImage(
-      const ImageConfiguration(size: Size(48, 48)),
-      'assets/icons/truck_nav.png',
+    final truck = await MapMarkerUtil.createCustomMarker(
+      icon: Icons.local_shipping_rounded,
+      color: AppColors.accent,
+      size: 100,
     );
-    if (mounted) setState(() => _truckIcon = icon);
+    final home = await MapMarkerUtil.createCustomMarker(
+      icon: Icons.home_rounded,
+      color: Colors.redAccent,
+      size: 100,
+    );
+    if (mounted) {
+      setState(() {
+        _truckIcon = truck;
+        _homeIcon = home;
+      });
+    }
   }
 
   void _startTracking() {
@@ -172,6 +185,7 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
         markers.add(Marker(
           markerId: MarkerId(houses[i].id),
           position: pos,
+          icon: _homeIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
           infoWindow: InfoWindow(title: data['name'] ?? 'Pickup'),
         ));
       }
@@ -232,6 +246,7 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
         markers.add(Marker(
           markerId: MarkerId(data['id']),
           position: pos,
+          icon: _homeIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
           infoWindow: InfoWindow(title: data['name']),
         ));
       }

@@ -143,13 +143,20 @@ class AdminDashboardScreen extends StatelessWidget {
           AppColors.accent,
           () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAssignRouteScreen())),
         ),
-        _buildAdvancedActionTile(
-          context,
-          'Verification Queue',
-          'Process resident home location requests',
-          Icons.playlist_add_check_rounded,
-          Colors.tealAccent,
-          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminHomeRequestsScreen())),
+        StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance.collection('users').where('homeStatus', whereIn: ['pending_approval', 'pending_removal']).snapshots(),
+          builder: (context, snapshot) {
+            int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+            return _buildAdvancedActionTile(
+              context,
+              'Verification Queue',
+              'Process resident home location requests',
+              Icons.playlist_add_check_rounded,
+              Colors.tealAccent,
+              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminHomeRequestsScreen())),
+              badge: count > 0 ? count.toString() : null,
+            );
+          }
         ),
         _buildAdvancedActionTile(
           context,
@@ -218,7 +225,7 @@ class AdminDashboardScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildAdvancedActionTile(BuildContext context, String title, String subtitle, IconData icon, Color color, VoidCallback onTap) {
+  Widget _buildAdvancedActionTile(BuildContext context, String title, String subtitle, IconData icon, Color color, VoidCallback onTap, {String? badge}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: InkWell(
@@ -241,9 +248,21 @@ class AdminDashboardScreen extends StatelessWidget {
               const SizedBox(width: 20),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    Row(
+                      children: [
+                        Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        if (badge != null) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(color: Colors.redAccent, borderRadius: BorderRadius.circular(10)),
+                            child: Text(badge, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ],
+                    ),
                     const SizedBox(height: 4),
                     Text(subtitle, style: const TextStyle(color: AppColors.textMuted, fontSize: 13)),
                   ],

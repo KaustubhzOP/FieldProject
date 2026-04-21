@@ -5,6 +5,7 @@ import '../../providers/complaint_provider.dart';
 import '../../providers/auth_provider.dart';
 import 'dart:convert';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 import '../../models/complaint.dart';
 import '../../models/driver.dart';
 
@@ -24,7 +25,12 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
 
   Future<void> _pickImage(StateSetter setModalState, ImageSource source) async {
     final picker = ImagePicker();
-    final pickedFile = await picker.pickImage(source: source, imageQuality: 25);
+    final pickedFile = await picker.pickImage(
+      source: source,
+      imageQuality: 10,   // Very low quality to keep under Firestore 1MB limit
+      maxWidth: 400,      // Cap dimensions to further reduce file size
+      maxHeight: 400,
+    );
     if (pickedFile != null) {
       final bytes = await pickedFile.readAsBytes();
       setModalState(() {
@@ -139,14 +145,14 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
             final c = filtered[index];
             final color = c.status == 'resolved' ? Colors.green : (c.status == 'in_progress' ? Colors.blue : Colors.orange);
             final timeStr = "${c.createdAt.day}/${c.createdAt.month}/${c.createdAt.year}";
-            return _complaintSummaryItem(c.id, c.type, c.status.toUpperCase(), color, timeStr, c.description);
+            return _complaintSummaryItem(context, c.id, c.type, c.status.toUpperCase(), color, timeStr, c.description);
           },
         );
       },
     );
   }
 
-  Widget _complaintSummaryItem(String id, String type, String status, Color color, String time, String desc) {
+  Widget _complaintSummaryItem(BuildContext context, String id, String type, String status, Color color, String time, String desc) {
     return Card(
       elevation: 0,
       color: AppColors.secondary,
@@ -165,14 +171,45 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
             Text(desc, style: const TextStyle(color: AppColors.textBody, fontSize: 13), maxLines: 2, overflow: TextOverflow.ellipsis),
           ],
         ),
-        trailing: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-          child: Text(
-            status, 
-            style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
-          ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(color: color.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+              child: Text(
+                status, 
+                style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 12),
+              ),
+            ),
+            const SizedBox(width: 8),
+            IconButton(
+              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+              onPressed: () => _confirmDeletion(context, id),
+            ),
+          ],
         ),
+      ),
+    );
+  }
+
+  void _confirmDeletion(BuildContext context, String id) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.secondary,
+        title: const Text('Delete Complaint?', style: TextStyle(color: Colors.white)),
+        content: const Text('This action cannot be undone.', style: TextStyle(color: AppColors.textBody)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
+          TextButton(
+            onPressed: () {
+              context.read<ComplaintProvider>().deleteComplaint(id);
+              Navigator.pop(ctx);
+            },
+            child: const Text('DELETE', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
       ),
     );
   }
@@ -196,7 +233,23 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Raise New Complaint', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Raise New Complaint', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white)),
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white54),
+                        onPressed: () {
+                          _resetForm();
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  _buildLocationIndicator(),
+                  const SizedBox(height: 16),
+                  _buildMiniMapPreview(),
                   const SizedBox(height: 20),
                   const Text('Complaint Type', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textMuted)),
                   const SizedBox(height: 4),
@@ -236,18 +289,20 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                   const SizedBox(height: 16),
                   const Text('Description', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textMuted)),
                   const SizedBox(height: 4),
-                  TextFormField(
-                    controller: _descriptionController,
-                    maxLines: 4,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Enter details here...',
-                      hintStyle: const TextStyle(color: Colors.white38),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white24)),
+                    TextFormField(
+                      controller: _descriptionController,
+                      maxLines: 4,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Enter details here...',
+                        hintStyle: const TextStyle(color: Colors.white38),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white24)),
+                        helperText: '📍 Location attached successfully',
+                        helperStyle: const TextStyle(color: Colors.teal, fontSize: 10),
+                      ),
+                      validator: (val) => val == null || val.isEmpty ? 'Description required' : null,
                     ),
-                    validator: (val) => val == null || val.isEmpty ? 'Description required' : null,
-                  ),
                   const SizedBox(height: 16),
                   const Text('Attach Photo', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.textMuted)),
                   const SizedBox(height: 8),
@@ -282,12 +337,24 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         if (_formKey.currentState!.validate()) {
-                          final userId = context.read<AuthProvider>().currentUser?.id ?? 'unknown';
+                          final auth = context.read<AuthProvider>();
+                          final user = auth.currentUser;
+                          final userId = user?.id ?? 'unknown';
+                          
+                          // Senior Logic: Sync from current map session first, then home profile
+                          final syncLat = auth.sessionSelection?.latitude;
+                          final syncLng = auth.sessionSelection?.longitude;
+                          
+                          final lat = syncLat ?? user?.homeLat ?? user?.pendingLat ?? 0.0;
+                          final lng = syncLng ?? user?.homeLng ?? user?.pendingLng ?? 0.0;
+
                           final newComplaint = ComplaintModel(
                             id: 'CMP-${DateTime.now().millisecondsSinceEpoch.toString().substring(8)}',
                             type: _selectedType,
                             description: '[Priority: $_priority]\n${_descriptionController.text}',
-                            location: LocationModel(latitude: 0, longitude: 0),
+                            location: LocationModel(latitude: lat, longitude: lng),
+                            latitude: lat,
+                            longitude: lng,
                             status: 'pending',
                             raisedBy: userId,
                             createdAt: DateTime.now(),
@@ -296,13 +363,13 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                           
                           context.read<ComplaintProvider>().createComplaint(newComplaint).then((success) {
                             if (mounted) {
-                              Navigator.pop(context);
-                              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text(success ? 'Complaint Submitted!' : 'Submission Failed'),
-                                backgroundColor: success ? Colors.teal : AppColors.error,
-                              ));
-                              _descriptionController.clear();
-                              setState(() => _base64Image = null);
+                              Navigator.pop(context); // Close Form
+                              if (success) {
+                                _showSuccessPopup();
+                                _resetForm();
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Submission Failed'), backgroundColor: AppColors.error));
+                              }
                             }
                           });
                         }
@@ -317,11 +384,135 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                       ),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: TextButton(
+                      onPressed: () {
+                        _resetForm();
+                        Navigator.pop(context);
+                      },
+                      child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted)),
+                    ),
+                  ),
                   const SizedBox(height: 20),
                 ],
               ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _resetForm() {
+    _descriptionController.clear();
+    _base64Image = null;
+    _selectedType = 'Missed Collection';
+    _priority = 'Standard';
+    setState(() {});
+  }
+
+  void _showSuccessPopup() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(30),
+          decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.teal.withOpacity(0.5))),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.teal, size: 60),
+              SizedBox(height: 20),
+              Text('Complaint Submitted!', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+              SizedBox(height: 8),
+              Text('Our team will address this soon.', style: TextStyle(fontSize: 13, color: AppColors.textMuted, decoration: TextDecoration.none)),
+            ],
+          ),
+        ),
+      ),
+    );
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted && Navigator.canPop(context)) Navigator.pop(context);
+    });
+  }
+
+  Widget _buildLocationIndicator() {
+    final user = context.read<AuthProvider>().currentUser;
+    final hasLoc = user?.homeLat != null || user?.pendingLat != null;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: hasLoc ? Colors.teal.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: hasLoc ? Colors.teal.withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(hasLoc ? Icons.location_on : Icons.location_off, color: hasLoc ? Colors.teal : Colors.orange, size: 14),
+          const SizedBox(width: 8),
+          Text(
+            hasLoc ? 'Home Location Attached' : 'No Location Set (Register Home for Precision)',
+            style: TextStyle(color: hasLoc ? Colors.teal : Colors.orange, fontSize: 11, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMiniMapPreview() {
+    final auth = context.read<AuthProvider>();
+    final user = auth.currentUser;
+    final pos = auth.sessionSelection ?? 
+              (user?.homeLat != null ? LatLng(user!.homeLat!, user.homeLng!) : null) ??
+              (user?.pendingLat != null ? LatLng(user!.pendingLat!, user.pendingLng!) : null);
+
+    if (pos == null) {
+      return Container(
+        height: 80,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.secondary,
+          borderRadius: BorderRadius.circular(15),
+          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+        ),
+        child: const Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.map_outlined, color: Colors.orange, size: 24),
+            SizedBox(height: 8),
+            Text('No Location Selected. Tap Main Map First.', style: TextStyle(color: Colors.orange, fontSize: 11)),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      height: 120,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.secondary,
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(15),
+        child: GoogleMap(
+          key: const Key('complaint_preview_map'),
+          initialCameraPosition: CameraPosition(target: pos, zoom: 15),
+          zoomGesturesEnabled: false,
+          scrollGesturesEnabled: false,
+          tiltGesturesEnabled: false,
+          rotateGesturesEnabled: false,
+          myLocationButtonEnabled: false,
+          mapToolbarEnabled: false,
+          markers: {
+            Marker(markerId: const MarkerId('preview'), position: pos),
+          },
         ),
       ),
     );

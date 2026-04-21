@@ -9,7 +9,9 @@ import '../../providers/auth_provider.dart';
 import '../../config/app_colors.dart';
 import '../../services/proximity_scanner_service.dart';
 import '../../services/auth_service.dart';
+import '../../models/user.dart';
 import '../../utils/map_styles.dart';
+import '../../utils/map_marker_util.dart';
 
 class ResidentHomeScreen extends StatefulWidget {
   const ResidentHomeScreen({super.key});
@@ -33,13 +35,36 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
   String _wardDriverName = '';
   String _residentWard = '';
   bool _truckArriving = false;
+  LatLng? _selectedPoint;
   bool _isLoading = false;
+  BitmapDescriptor? _truckIcon;
+  BitmapDescriptor? _homeIcon;
 
   @override
   void initState() {
     super.initState();
+    _loadIcons();
     _startTracking();
     _initProximityMonitoring();
+  }
+
+  Future<void> _loadIcons() async {
+    final truck = await MapMarkerUtil.createCustomMarker(
+      icon: Icons.local_shipping_rounded,
+      color: AppColors.accent,
+      size: 100,
+    );
+    final home = await MapMarkerUtil.createCustomMarker(
+      icon: Icons.home_rounded,
+      color: Colors.redAccent,
+      size: 100,
+    );
+    if (mounted) {
+      setState(() {
+        _truckIcon = truck;
+        _homeIcon = home;
+      });
+    }
   }
 
   void _startTracking() {
@@ -128,6 +153,22 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
     }
   }
 
+  Future<void> _confirmManualLocation() async {
+    if (_selectedPoint == null) return;
+    setState(() => _isLoading = true);
+    try {
+      final user = context.read<AuthProvider>().currentUser;
+      if (user != null) {
+        await _authService.requestHomeVerification(user.id, _selectedPoint!.latitude, _selectedPoint!.longitude);
+        if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location Submitted for Verification!'), backgroundColor: Colors.teal));
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
   Future<void> _initProximityMonitoring() async {
     await _proximityService.initialize();
     if (_residentHouse != null) {
@@ -151,8 +192,17 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
       markers.add(Marker(
         markerId: const MarkerId('home'),
         position: _residentHouse!,
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
+        icon: _homeIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueCyan),
         infoWindow: const InfoWindow(title: 'My House'),
+      ));
+    }
+
+    if (_homeStatus == 'none' && _selectedPoint != null) {
+      markers.add(Marker(
+        markerId: const MarkerId('selection'),
+        position: _selectedPoint!,
+        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+        infoWindow: const InfoWindow(title: 'Selected Home Location'),
       ));
     }
     for (var entry in _liveDrivers.entries) {
@@ -163,7 +213,7 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
       markers.add(Marker(
         markerId: MarkerId(entry.key),
         position: LatLng(location['lat'], location['lng']),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
+        icon: _truckIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         rotation: (location['heading'] as num?)?.toDouble() ?? 0,
       ));
     }
@@ -175,7 +225,7 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Fleet Map'),
+        title: const Text('FLEET MAP (SYNC TEST)'),
         actions: [
           if (_homeStatus == 'approved')
             IconButton(icon: const Icon(Icons.refresh_rounded, color: Colors.white), onPressed: () => _startTracking()),
@@ -191,13 +241,22 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
             zoomControlsEnabled: false,
             mapToolbarEnabled: false,
             onMapCreated: (c) => _mapController = c,
+            onTap: _homeStatus == 'none' ? (p) {
+              setState(() => _selectedPoint = p);
+              context.read<AuthProvider>().setSessionSelection(p);
+              _mapController?.animateCamera(CameraUpdate.newLatLng(p));
+            } : (p) {
+              context.read<AuthProvider>().setSessionSelection(p);
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Location Captured for Complaint'), duration: Duration(seconds: 1)));
+            },
           ),
+
+          // Zoom Controls (Moved above overlays for hit-test priority)
+          _buildZoomControls(),
 
           // Glass Overlays
           if (_homeStatus != 'approved') _buildWelcomeOverlay(),
           if (_homeStatus == 'approved') _buildTrackingOverlay(),
-          
-          _buildZoomControls(),
         ],
       ),
     );
@@ -205,40 +264,71 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
 
   Widget _buildWelcomeOverlay() {
     bool isPending = _homeStatus == 'pending_approval' || _homeStatus == 'pending_removal';
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
-            child: Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.8), borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.white.withOpacity(0.1))),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), shape: BoxShape.circle),
-                    child: Icon(isPending ? Icons.hourglass_top_rounded : Icons.home_work_rounded, size: 40, color: AppColors.accent),
-                  ),
-                  const SizedBox(height: 24),
-                  Text(isPending ? 'Verification Active' : 'Setup Location', style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
-                  const SizedBox(height: 12),
-                  Text(
-                    isPending ? 'Our admin is currently verifying your home location. Real-time fleet tracking will be enabled once approved.' : 'Ready to start tracking? Register your house location to see exactly where the garbage trucks are in your ward.',
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textBody, height: 1.5),
-                  ),
-                  const SizedBox(height: 32),
-                  if (!isPending)
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _registerHome,
-                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
-                      child: _isLoading ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Text('Register Home Now'),
+    
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 500),
+      top: isPending ? 0 : (_selectedPoint == null ? MediaQuery.of(context).size.height * 0.3 : MediaQuery.of(context).size.height * 0.7),
+      left: 0, right: 0, bottom: 0,
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(30),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: AppColors.secondary.withOpacity(0.85), 
+                  borderRadius: BorderRadius.circular(30), 
+                  border: Border.all(color: Colors.white.withOpacity(0.1))
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), shape: BoxShape.circle),
+                      child: Icon(isPending ? Icons.hourglass_top_rounded : Icons.add_location_alt_rounded, size: 36, color: AppColors.accent),
                     ),
-                ],
+                    const SizedBox(height: 20),
+                    Text(
+                      isPending ? 'Verification Active' : (_selectedPoint == null ? 'Setup Location' : 'Confirm Location'), 
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white)
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      isPending 
+                        ? 'Our admin is currently verifying your home location. Real-time fleet tracking will be enabled once approved.' 
+                        : (_selectedPoint == null 
+                            ? 'Ready to start tracking? Tap anywhere on the map to pick your home location.' 
+                            : 'Is this the correct location for your home? Trucks will be tracked relative to this point.'),
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(color: AppColors.textBody, height: 1.4, fontSize: 13),
+                    ),
+                    const SizedBox(height: 24),
+                    if (!isPending)
+                      Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: _isLoading ? null : _registerHome,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.accent,
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                              ),
+                              icon: _isLoading ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.my_location_rounded, size: 20),
+                              label: const Text('ENABLE CURRENT LOCATION', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          const Text('Tapping above will share your precise GPS coordinates with the collection fleet.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                        ],
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -286,6 +376,8 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
                 ),
                 if (_truckArriving) ...[
                   const SizedBox(height: 20),
+                  const Text('TRUCK IS APPROACHING', style: TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
+                  const SizedBox(height: 8),
                   const LinearProgressIndicator(backgroundColor: Colors.white10, valueColor: AlwaysStoppedAnimation<Color>(Colors.redAccent)),
                 ]
               ],
@@ -310,12 +402,20 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
   }
 
   Widget _buildMapBtn(IconData icon, VoidCallback tap) {
-    return InkWell(
-      onTap: tap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.8), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
-        child: Icon(icon, color: Colors.white, size: 20),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: tap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.secondary.withOpacity(0.8), 
+            borderRadius: BorderRadius.circular(12), 
+            border: Border.all(color: Colors.white10),
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
       ),
     );
   }
