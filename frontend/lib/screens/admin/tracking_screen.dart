@@ -15,7 +15,7 @@ class AdminTrackingScreen extends StatefulWidget {
   State<AdminTrackingScreen> createState() => _AdminTrackingScreenState();
 }
 
-class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
+class _AdminTrackingScreenState extends State<AdminTrackingScreen> with SingleTickerProviderStateMixin {
   GoogleMapController? _mapController;
   StreamSubscription? _driversSubscription;
   final _broadcastService = LocationBroadcastService();
@@ -23,6 +23,9 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
   final Map<String, Map<String, dynamic>> _liveDrivers = {};
   final Map<String, Map<String, dynamic>> _liveHouses = {};
   final Map<String, Map<String, dynamic>> _pendingResidents = {};
+  final Map<String, LatLng> _oldTruckPositions = {};
+
+  late AnimationController _markerAnimator;
 
   bool _showTrucks = true;
   bool _showHouses = true;
@@ -32,6 +35,8 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
   @override
   void initState() {
     super.initState();
+    _markerAnimator = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    _markerAnimator.addListener(() => setState(() {}));
     _loadIcons();
     _startLiveTracking();
   }
@@ -58,12 +63,23 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
   void _startLiveTracking() {
     _driversSubscription = _broadcastService.getActiveDriversStream().listen((snapshot) {
       if (!mounted) return;
-      setState(() {
-        _liveDrivers.clear();
-        for (var doc in snapshot.docs) {
-          _liveDrivers[doc.id] = doc.data() as Map<String, dynamic>;
+      // Keep old positions to animate from
+      for (var key in _liveDrivers.keys) {
+        final loc = _liveDrivers[key]?['liveLocation'];
+        if (loc != null) _oldTruckPositions[key] = LatLng((loc['lat'] as num).toDouble(), (loc['lng'] as num).toDouble());
+      }
+      
+      _liveDrivers.clear();
+      for (var doc in snapshot.docs) {
+        _liveDrivers[doc.id] = doc.data() as Map<String, dynamic>;
+        // If new driver, duplicate start pos to avoid jump
+        if (!_oldTruckPositions.containsKey(doc.id)) {
+          final loc = _liveDrivers[doc.id]!['liveLocation'];
+          if (loc != null) _oldTruckPositions[doc.id] = LatLng((loc['lat'] as num).toDouble(), (loc['lng'] as num).toDouble());
         }
-      });
+      }
+      _oldTruckPositions.removeWhere((key, _) => !_liveDrivers.containsKey(key));
+      _markerAnimator.forward(from: 0.0);
     });
 
     FirebaseFirestore.instance.collection('users').where('homeStatus', isEqualTo: 'approved').snapshots().listen((snapshot) {
@@ -89,6 +105,7 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
 
   @override
   void dispose() {
+    _markerAnimator.dispose();
     _driversSubscription?.cancel();
     super.dispose();
   }
@@ -129,9 +146,18 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> {
         final data = entry.value;
         final location = data['liveLocation'];
         if (location == null) continue;
+        
+        LatLng target = LatLng((location['lat'] as num).toDouble(), (location['lng'] as num).toDouble());
+        LatLng old = _oldTruckPositions[entry.key] ?? target;
+        double t = _markerAnimator.value;
+        LatLng animatedPos = LatLng(
+          old.latitude + (target.latitude - old.latitude) * t,
+          old.longitude + (target.longitude - old.longitude) * t,
+        );
+
         markers.add(Marker(
           markerId: MarkerId(entry.key),
-          position: LatLng((location['lat'] as num).toDouble(), (location['lng'] as num).toDouble()),
+          position: animatedPos,
           rotation: (location['heading'] as num?)?.toDouble() ?? 0,
           icon: _truckIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
           infoWindow: InfoWindow(

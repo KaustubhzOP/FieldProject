@@ -117,25 +117,8 @@ class FleetSimulationService {
         if (change.type == DocumentChangeType.modified) {
           final data = change.doc.data();
           final status = data?['status'];
-          final userId = data?['raisedBy'];
-          if (userId != null) {
-            print('--- NOTIFICATION ENGINE (SIMULATION) ---');
-            print('[TRIGGER] Status Shift in #${change.doc.id} -> $status');
-            
-            // Educational Warning for User
-            print('⚠️  REMINDER: For "Real Emails", you must run the deployment script:');
-            print('   > .\\deploy_backend.bat');
-            print('----------------------------------------');
-
-            Future.delayed(const Duration(milliseconds: 500), () {
-              // Note: We simulate the fetch. In reality, the email comes from the 'users' collection.
-              print('[SIM_LOG] Email fetch triggered for recipient UID: $userId');
-              Future.delayed(const Duration(milliseconds: 500), () {
-                print('📧 [SIMULATED ACTION] Sending SMTP packet to Mail Server...');
-                print('✅ [SENT] Real Email would be delivered to the address stored in Firestore for $userId');
-              });
-            });
-          }
+          // Real email/push logic is now handled in ComplaintProvider.dart
+          print('📝 Status Update Detected: #${change.doc.id} is now $status');
         }
       }
     });

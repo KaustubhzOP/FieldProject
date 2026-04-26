@@ -13,4 +13,11 @@ backend/*.log
 **/*.keystore
 **/*.google-services.json
 **/*.GoogleService-Info.plist
+**/*.json
+!**/pubspec.json
+
+# Dependencies
+node_modules/
+backend/node_modules/
+frontend/.dart_tool/
 

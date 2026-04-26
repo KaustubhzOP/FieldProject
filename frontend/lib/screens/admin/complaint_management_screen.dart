@@ -15,6 +15,8 @@ class AdminComplaintManagementScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isDesktop = MediaQuery.of(context).size.width > 1100;
+
     return DefaultTabController(
       length: 3,
       child: Scaffold(
@@ -29,18 +31,14 @@ class AdminComplaintManagementScreen extends StatelessWidget {
             ],
           ),
         ),
-        // StreamBuilder at this level so all tabs share one stream
         body: StreamBuilder<QuerySnapshot>(
           stream: FirebaseFirestore.instance.collection('complaints').snapshots(),
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator(color: AppColors.accent));
             }
-            if (snap.hasError) {
-              return Center(child: Text('Error: ${snap.error}', style: const TextStyle(color: Colors.redAccent)));
-            }
+            if (snap.hasError) return Center(child: Text('Error: ${snap.error}'));
 
-            // Parse ALL complaints once
             final List<ComplaintModel> all = [];
             for (final doc in (snap.data?.docs ?? [])) {
               try {
@@ -50,6 +48,10 @@ class AdminComplaintManagementScreen extends StatelessWidget {
               } catch (_) {}
             }
             all.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+            if (isDesktop) {
+              return _AdminWebManagementLayout(allComplaints: all);
+            }
 
             return TabBarView(
               children: [
@@ -61,6 +63,79 @@ class AdminComplaintManagementScreen extends StatelessWidget {
           },
         ),
       ),
+    );
+  }
+}
+
+class _AdminWebManagementLayout extends StatefulWidget {
+  final List<ComplaintModel> allComplaints;
+  const _AdminWebManagementLayout({required this.allComplaints});
+
+  @override
+  State<_AdminWebManagementLayout> createState() => _AdminWebManagementLayoutState();
+}
+
+class _AdminWebManagementLayoutState extends State<_AdminWebManagementLayout> {
+  ComplaintModel? _selectedComplaint;
+
+  @override
+  Widget build(BuildContext context) {
+    final tabIndex = DefaultTabController.of(context).index;
+    final status = tabIndex == 0 ? 'pending' : (tabIndex == 1 ? 'in_progress' : 'resolved');
+    final filtered = widget.allComplaints.where((c) => c.status == status).toList();
+
+    return Row(
+      children: [
+        // Sidebar List
+        SizedBox(
+          width: 400,
+          child: Container(
+            decoration: const BoxDecoration(border: Border(right: BorderSide(color: Colors.white12))),
+            child: filtered.isEmpty 
+              ? const Center(child: Text('No complaints', style: TextStyle(color: Colors.white24)))
+              : ListView.builder(
+                  itemCount: filtered.length,
+                  itemBuilder: (ctx, i) {
+                    final c = filtered[i];
+                    final isSelected = _selectedComplaint?.id == c.id;
+                    return InkWell(
+                      onTap: () => setState(() => _selectedComplaint = c),
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        color: isSelected ? AppColors.accent.withOpacity(0.1) : Colors.transparent,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(c.id.toUpperCase().substring(0, 8), style: TextStyle(color: isSelected ? AppColors.accent : Colors.white, fontWeight: FontWeight.bold)),
+                                  Text(c.type, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
+                                ],
+                              ),
+                            ),
+                            if (isSelected) const Icon(Icons.chevron_right, color: AppColors.accent),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+          ),
+        ),
+        // Detail Area
+        Expanded(
+          child: _selectedComplaint == null 
+            ? const Center(child: Text('Select a complaint to view details', style: TextStyle(color: Colors.white24)))
+            : Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: ComplaintDetailScreen(complaint: _selectedComplaint, key: ValueKey(_selectedComplaint!.id)),
+                ),
+              ),
+        ),
+      ],
     );
   }
 }
@@ -107,7 +182,7 @@ class _ComplaintTab extends StatelessWidget {
           onTap: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (_) => _ComplaintDetailScreen(complaint: c)),
+              MaterialPageRoute(builder: (_) => ComplaintDetailScreen(complaint: c)),
             );
           },
           child: Container(
@@ -162,15 +237,18 @@ class _ComplaintTab extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 // DETAIL SCREEN (full page, avoids all dialog/context/overlay issues)
 // ─────────────────────────────────────────────────────────────────────────────
-class _ComplaintDetailScreen extends StatefulWidget {
-  final ComplaintModel complaint;
-  const _ComplaintDetailScreen({required this.complaint});
+class ComplaintDetailScreen extends StatefulWidget {
+  final ComplaintModel? complaint;
+  final String? complaintId;
+  const ComplaintDetailScreen({super.key, this.complaint, this.complaintId});
 
   @override
-  State<_ComplaintDetailScreen> createState() => _ComplaintDetailScreenState();
+  State<ComplaintDetailScreen> createState() => _ComplaintDetailScreenState();
 }
 
-class _ComplaintDetailScreenState extends State<_ComplaintDetailScreen> {
+class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
+  ComplaintModel? _complaint;
+  bool _loading = false;
   Uint8List? _imageBytes;
   bool _imageLoading = true;
   String _imageStatus = '';
@@ -178,11 +256,51 @@ class _ComplaintDetailScreenState extends State<_ComplaintDetailScreen> {
   @override
   void initState() {
     super.initState();
-    _decodeImage();
+    _initData();
+  }
+
+  @override
+  void didUpdateWidget(covariant ComplaintDetailScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.complaint != oldWidget.complaint || widget.complaintId != oldWidget.complaintId) {
+      _initData();
+    }
+  }
+
+  void _initData() {
+    if (widget.complaint != null) {
+      _complaint = widget.complaint;
+      _decodeImage();
+    } else if (widget.complaintId != null) {
+      _fetchComplaint();
+    }
+  }
+
+  Future<void> _fetchComplaint() async {
+    if (!mounted) return;
+    setState(() => _loading = true);
+    try {
+      final doc = await FirebaseFirestore.instance
+          .collection('complaints')
+          .doc(widget.complaintId)
+          .get();
+      if (doc.exists && mounted) {
+        final data = Map<String, dynamic>.from(doc.data() as Map);
+        data['id'] = doc.id;
+        setState(() {
+          _complaint = ComplaintModel.fromJson(data);
+          _loading = false;
+        });
+        _decodeImage();
+      }
+    } catch (e) {
+      debugPrint('[FETCH] Failed: $e');
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   void _decodeImage() {
-    final url = widget.complaint.imageUrl;
+    final url = _complaint?.imageUrl;
     if (url == null || url.trim().isEmpty) {
       setState(() { _imageLoading = false; _imageStatus = 'none'; });
       return;
@@ -210,94 +328,148 @@ class _ComplaintDetailScreenState extends State<_ComplaintDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final c = widget.complaint;
-    final hasImg = c.imageUrl != null && c.imageUrl!.isNotEmpty;
-    final sizeKB = hasImg ? (c.imageUrl!.length / 1024).toStringAsFixed(1) : '0';
+    final bool isDesktop = MediaQuery.of(context).size.width > 900;
+    if (_loading) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(title: const Text('Loading...')),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (_complaint == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(title: const Text('Error')),
+        body: const Center(child: Text('Complaint not found', style: TextStyle(color: Colors.white))),
+      );
+    }
+
+    final c = _complaint!;
     final statusColor = c.status == 'resolved' ? Colors.green : (c.status == 'in_progress' ? Colors.blue : Colors.orange);
+
+    // Action button logic
+    Widget? actionButton;
+    if (c.status != 'resolved') {
+      actionButton = TextButton.icon(
+        onPressed: () => _handleStatusUpdate(context, c),
+        icon: const Icon(Icons.check, color: Colors.white),
+        label: Text(c.status == 'pending' ? 'Start' : 'Resolve', style: const TextStyle(color: Colors.white)),
+      );
+    }
+
+    final body = SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (isDesktop) ...[
+             Row(
+               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+               children: [
+                 Text(c.type, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                 if (actionButton != null) actionButton,
+               ],
+             ),
+             const SizedBox(height: 10),
+          ],
+          // Status badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(color: statusColor.withOpacity(0.15), borderRadius: BorderRadius.circular(20)),
+            child: Text(c.status.toUpperCase().replaceAll('_', ' '),
+                style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          const SizedBox(height: 20),
+          _section('Complaint ID', c.id),
+          _section('Type', c.type),
+          _section('Description', c.description),
+          _section('Raised By', c.raisedBy),
+          _section('Date', '${c.createdAt.day}/${c.createdAt.month}/${c.createdAt.year} at ${c.createdAt.hour}:${c.createdAt.minute.toString().padLeft(2, '0')}'),
+          _section('Location', 'LAT: ${c.latitude.toStringAsFixed(5)}  |  LNG: ${c.longitude.toStringAsFixed(5)}'),
+          const SizedBox(height: 20),
+          Row(children: [
+            const Text('Attached Photo', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 14)),
+            const SizedBox(width: 8),
+            Text(c.imageUrl != null && c.imageUrl!.isNotEmpty ? '(${(c.imageUrl!.length / 1024).toStringAsFixed(1)} KB stored)' : '(none)',
+                style: const TextStyle(color: Colors.white38, fontSize: 11)),
+          ]),
+          const SizedBox(height: 10),
+          _buildImageDisplay(c),
+          const SizedBox(height: 30),
+        ],
+      ),
+    );
+
+    if (isDesktop) return body;
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        title: Text(c.type),
-        actions: [
-          if (c.status != 'resolved')
-            TextButton.icon(
-              onPressed: () {
-                final newStatus = c.status == 'pending' ? 'in_progress' : 'resolved';
-                context.read<ComplaintProvider>().updateComplaintStatus(c.id, newStatus);
-                Navigator.pop(context);
-              },
-              icon: const Icon(Icons.check, color: Colors.white),
-              label: Text(
-                c.status == 'pending' ? 'Start' : 'Resolve',
-                style: const TextStyle(color: Colors.white),
-              ),
-            ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      appBar: AppBar(title: Text(c.type), actions: [if (actionButton != null) actionButton]),
+      body: body,
+    );
+  }
+
+  void _handleStatusUpdate(BuildContext context, ComplaintModel c) async {
+    final newStatus = c.status == 'pending' ? 'in_progress' : 'resolved';
+    final remarksController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.secondary,
+        title: Text(c.status == 'pending' ? 'Mark as In Progress' : 'Mark as Resolved', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            // Status badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: BoxDecoration(
-                color: statusColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(20),
+            const Text('Add a message for the resident (optional):', style: TextStyle(color: AppColors.textMuted, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: remarksController,
+              maxLines: 3,
+              style: const TextStyle(color: Colors.white),
+              decoration: InputDecoration(
+                hintText: 'e.g. Team dispatched. Estimated resolution in 2 hours.',
+                hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
+                filled: true,
+                fillColor: AppColors.background,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
               ),
-              child: Text(c.status.toUpperCase().replaceAll('_', ' '),
-                  style: TextStyle(color: statusColor, fontWeight: FontWeight.bold, fontSize: 12)),
             ),
-            const SizedBox(height: 20),
-
-            _section('Complaint ID', c.id),
-            _section('Type', c.type),
-            _section('Description', c.description),
-            _section('Raised By', c.raisedBy),
-            _section('Date', '${c.createdAt.day}/${c.createdAt.month}/${c.createdAt.year} at ${c.createdAt.hour}:${c.createdAt.minute.toString().padLeft(2, '0')}'),
-            _section('Location', 'LAT: ${c.latitude.toStringAsFixed(5)}  |  LNG: ${c.longitude.toStringAsFixed(5)}'),
-
-            const SizedBox(height: 20),
-            Row(children: [
-              const Text('Attached Photo', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(width: 8),
-              Text(hasImg ? '($sizeKB KB stored)' : '(none)',
-                  style: const TextStyle(color: Colors.white38, fontSize: 11)),
-            ]),
-            const SizedBox(height: 10),
-
-            // IMAGE DISPLAY
-            if (_imageLoading)
-              const Center(child: Padding(
-                padding: EdgeInsets.all(20),
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ))
-            else if (_imageBytes != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.memory(
-                  _imageBytes!,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, err, __) => _imgError('Render failed: $err'),
-                ),
-              )
-            else if (hasImg)
-              _imgError('Stored but could not decode ($sizeKB KB). Status: $_imageStatus')
-            else
-              Container(
-                height: 80,
-                width: double.infinity,
-                decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
-                child: const Center(child: Text('No photo attached', style: TextStyle(color: Colors.white38))),
-              ),
-
-            const SizedBox(height: 30),
           ],
         ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+            child: const Text('Confirm'),
+          ),
+        ],
       ),
+    );
+
+    if (confirmed == true) {
+      final remarks = remarksController.text.trim();
+      await context.read<ComplaintProvider>().updateComplaintStatus(c.id, newStatus, remarks: remarks.isNotEmpty ? remarks : null);
+      if (context.mounted && MediaQuery.of(context).size.width <= 900) {
+         Navigator.pop(context);
+      }
+    }
+  }
+
+  Widget _buildImageDisplay(ComplaintModel c) {
+    if (_imageLoading) return const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator(strokeWidth: 2)));
+    if (_imageBytes != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.memory(_imageBytes!, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, err, __) => _imgError('Render failed: $err')),
+      );
+    }
+    if (c.imageUrl != null && c.imageUrl!.isNotEmpty) return _imgError('Stored but could not decode. Status: $_imageStatus');
+    return Container(
+      height: 80, width: double.infinity,
+      decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
+      child: const Center(child: Text('No photo attached', style: TextStyle(color: Colors.white38))),
     );
   }
 

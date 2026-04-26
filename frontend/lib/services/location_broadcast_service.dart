@@ -41,17 +41,11 @@ class LocationBroadcastService {
       throw 'Operational clearance requires location access. Please enable in settings.';
     }
 
-    // 2. Start GPS stream writing to Firestore with background persistence
+    // 2. Start high-frequency GPS stream writing to Firestore
     _positionSubscription = Geolocator.getPositionStream(
-      locationSettings: AndroidSettings(
-        accuracy: LocationAccuracy.high,
-        distanceFilter: 10,
-        intervalDuration: Duration(seconds: 5),
-        foregroundNotificationConfig: ForegroundNotificationConfig(
-          notificationText: "Truck is currently broadcasting location to residents",
-          notificationTitle: "Smart Waste Collection Active",
-          enableWakeLock: true,
-        ),
+      locationSettings: const LocationSettings(
+        accuracy: LocationAccuracy.bestForNavigation,
+        distanceFilter: 1, // Update every 1 meter physically moved
       ),
     ).listen((Position position) async {
       await _firestore.collection('drivers').doc(driverId).set({

@@ -35,14 +35,16 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  // Start Background Simulation
-  await FleetSimulationService().initialize();
+  // Simulation disabled per requirement to rely purely on native device GPS
+  // await FleetSimulationService().initialize();
   
   runApp(const SmartWasteApp());
 }
 
 class SmartWasteApp extends StatelessWidget {
   const SmartWasteApp({super.key});
+
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +60,7 @@ class SmartWasteApp extends StatelessWidget {
         builder: (context, authProvider, child) {
           return MaterialApp(
             title: 'Smart Waste Collection',
+            navigatorKey: navigatorKey,
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,

@@ -64,6 +64,8 @@ dependencies:
   
   # Utilities
   http: ^1.2.2
+  mailer: ^6.1.2
+  googleapis_auth: ^1.6.0
   connectivity_plus: ^6.1.0
   permission_handler: ^11.3.1
   image_picker: ^1.1.2
@@ -102,3 +104,5 @@ flutter:
     - assets/images/
     - assets/icons/
     - assets/lottie/
+    - assets/service_account.json
+    - assets/smart-waste-collection-6a2f0-firebase-adminsdk-fbsvc-04712bc14c.json

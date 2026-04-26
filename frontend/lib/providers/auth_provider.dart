@@ -4,6 +4,7 @@ import '../services/auth_service.dart';
 import '../utils/constants.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../services/notification_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -35,6 +36,9 @@ class AuthProvider with ChangeNotifier {
         final userId = prefs.getString(AppConstants.keyUserId);
         if (userId != null) {
           _currentUser = await _authService.getUserData(userId);
+          if (_currentUser != null) {
+             NotificationService().initialize(_currentUser!.id);
+          }
           notifyListeners();
         }
       }
@@ -61,6 +65,8 @@ class AuthProvider with ChangeNotifier {
         await prefs.setBool(AppConstants.keyIsLoggedIn, true);
         await prefs.setString(AppConstants.keyUserId, _currentUser!.id);
         await prefs.setString(AppConstants.keyUserRole, _currentUser!.role);
+        
+        NotificationService().initialize(_currentUser!.id);
         
         _isLoading = false;
         notifyListeners();

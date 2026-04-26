@@ -5,6 +5,8 @@ import 'complaint_screen.dart';
 import 'history_screen.dart';
 import 'profile_screen.dart';
 
+import '../../services/notification_service.dart';
+
 class ResidentHome extends StatefulWidget {
   const ResidentHome({super.key});
 
@@ -14,6 +16,12 @@ class ResidentHome extends StatefulWidget {
 
 class _ResidentHomeState extends State<ResidentHome> {
   int _selectedIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    NotificationService().processPendingNotifications();
+  }
   
   Widget _buildBody() {
     switch (_selectedIndex) {

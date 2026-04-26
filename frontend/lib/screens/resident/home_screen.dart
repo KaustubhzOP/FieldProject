@@ -20,13 +20,16 @@ class ResidentHomeScreen extends StatefulWidget {
   State<ResidentHomeScreen> createState() => _ResidentHomeScreenState();
 }
 
-class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
+class _ResidentHomeScreenState extends State<ResidentHomeScreen> with SingleTickerProviderStateMixin {
   GoogleMapController? _mapController;
   StreamSubscription? _driversSubscription;
   final _proximityService = ProximityScannerService();
   final _authService = AuthService();
 
   final Map<String, Map<String, dynamic>> _liveDrivers = {};
+  final Map<String, LatLng> _oldTruckPositions = {};
+  late AnimationController _markerAnimator;
+
   LatLng? _residentHouse;
   String _homeStatus = 'none';
   String _etaText = 'Calculating...';
@@ -43,6 +46,8 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
   @override
   void initState() {
     super.initState();
+    _markerAnimator = AnimationController(vsync: this, duration: const Duration(milliseconds: 900));
+    _markerAnimator.addListener(() => setState(() {}));
     _loadIcons();
     _startTracking();
     _initProximityMonitoring();
@@ -89,6 +94,12 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
 
     _driversSubscription = FirebaseFirestore.instance.collection('drivers').where('isOnDuty', isEqualTo: true).snapshots().listen((snapshot) {
       if (!mounted) return;
+      
+      for (var key in _liveDrivers.keys) {
+        final loc = _liveDrivers[key]?['liveLocation'];
+        if (loc != null) _oldTruckPositions[key] = LatLng((loc['lat'] as num).toDouble(), (loc['lng'] as num).toDouble());
+      }
+      
       _liveDrivers.clear();
       double nearest = double.infinity;
       String nearestName = '';
@@ -100,6 +111,12 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
           foundWardDriver = data['driverName'] ?? 'Assigned Driver';
         }
         _liveDrivers[doc.id] = data;
+        
+        if (!_oldTruckPositions.containsKey(doc.id)) {
+          final loc = data['liveLocation'];
+          if (loc != null) _oldTruckPositions[doc.id] = LatLng((loc['lat'] as num).toDouble(), (loc['lng'] as num).toDouble());
+        }
+        
         final location = data['liveLocation'];
         if (location == null || _residentHouse == null) continue;
         final dist = Geolocator.distanceBetween(_residentHouse!.latitude, _residentHouse!.longitude, (location['lat'] as num).toDouble(), (location['lng'] as num).toDouble());
@@ -108,6 +125,9 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
           nearestName = data['driverName'] ?? 'Truck';
         }
       }
+
+      _oldTruckPositions.removeWhere((key, _) => !_liveDrivers.containsKey(key));
+      _markerAnimator.forward(from: 0.0);
 
       setState(() {
         _nearestDistance = nearest;
@@ -170,7 +190,7 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
   }
 
   Future<void> _initProximityMonitoring() async {
-    await _proximityService.initialize();
+    // ProximityScannerService no longer needs separate initialization
     if (_residentHouse != null) {
       await _proximityService.startMonitoring(
         residentLat: _residentHouse!.latitude, residentLng: _residentHouse!.longitude,
@@ -181,6 +201,7 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
 
   @override
   void dispose() {
+    _markerAnimator.dispose();
     _driversSubscription?.cancel();
     _proximityService.stopMonitoring();
     super.dispose();
@@ -210,9 +231,18 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
       if (_residentWard.isNotEmpty && data['ward'] != _residentWard) continue;
       final location = data['liveLocation'];
       if (location == null) continue;
+      
+      LatLng target = LatLng((location['lat'] as num).toDouble(), (location['lng'] as num).toDouble());
+      LatLng old = _oldTruckPositions[entry.key] ?? target;
+      double t = _markerAnimator.value;
+      LatLng animatedPos = LatLng(
+        old.latitude + (target.latitude - old.latitude) * t,
+        old.longitude + (target.longitude - old.longitude) * t,
+      );
+
       markers.add(Marker(
         markerId: MarkerId(entry.key),
-        position: LatLng(location['lat'], location['lng']),
+        position: animatedPos,
         icon: _truckIcon ?? BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueAzure),
         rotation: (location['heading'] as num?)?.toDouble() ?? 0,
       ));
@@ -310,12 +340,30 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
                     if (!isPending)
                       Column(
                         children: [
+                          if (_selectedPoint != null) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: _isLoading ? null : _confirmManualLocation,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green,
+                                  padding: const EdgeInsets.symmetric(vertical: 16),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                                ),
+                                icon: _isLoading ? const SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : const Icon(Icons.check_circle_outline, size: 20),
+                                label: const Text('CONFIRM SELECTED LOCATION', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1)),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            const Text('^ Using map selection', textAlign: TextAlign.center, style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 12),
+                          ],
                           SizedBox(
                             width: double.infinity,
                             child: ElevatedButton.icon(
                               onPressed: _isLoading ? null : _registerHome,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.accent,
+                                backgroundColor: _selectedPoint == null ? AppColors.accent : Colors.grey.shade800,
                                 padding: const EdgeInsets.symmetric(vertical: 16),
                                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                               ),
@@ -324,7 +372,7 @@ class _ResidentHomeScreenState extends State<ResidentHomeScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          const Text('Tapping above will share your precise GPS coordinates with the collection fleet.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
+                          const Text('Or use device real-time GPS coordinates.', textAlign: TextAlign.center, style: TextStyle(color: AppColors.textMuted, fontSize: 10)),
                         ],
                       ),
                   ],

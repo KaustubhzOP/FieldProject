@@ -9,6 +9,8 @@ import '../../utils/map_styles.dart';
 import '../../config/app_colors.dart';
 import '../../utils/map_marker_util.dart';
 
+import '../../services/fcm_service.dart';
+
 class DriverRouteScreen extends StatefulWidget {
   const DriverRouteScreen({super.key});
 
@@ -22,6 +24,7 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
   BitmapDescriptor? _truckIcon;
   BitmapDescriptor? _homeIcon;
   final Set<String> _collectedIds = {};
+  final Set<String> _fcmNotifiedIds = {};
   
   @override
   void initState() {
@@ -85,57 +88,7 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
     final user = context.read<AuthProvider>().currentUser;
     if (user == null) return const Scaffold(backgroundColor: Colors.white, body: Center(child: Text('Unauthorized Access')));
 
-    // --- INSTANT DEMO MODE (Offline Failsafe) ---
-    // Detect demo drivers by email and bypass the Firestore stall
-    String demoWard = '';
-    if (user.email == 'driver1@gmail.com') demoWard = 'Ward 1';
-    if (user.email == 'driver2@gmail.com') demoWard = 'Ward 2';
-    if (user.email == 'driver3@gmail.com') demoWard = 'Ward 3';
-    if (user.email == 'driver4@gmail.com') demoWard = 'Ward 1'; 
-    if (user.email == 'driver5@gmail.com') demoWard = 'Ward 2';
-
-    if (demoWard.isNotEmpty) {
-      final List<Map<String, dynamic>> localFallbackResidents = {
-        'Ward 1': [
-          {'id': 'static_1_1', 'name': '12 Hill Road', 'homeLat': 19.0596, 'homeLng': 72.8295, 'address': 'Bandra West, Mumbai'},
-          {'id': 'road_1_1_2a', 'name': '', 'homeLat': 19.0595, 'homeLng': 72.8315, 'isWayPoint': true},
-          {'id': 'road_1_1_2b', 'name': '', 'homeLat': 19.0605, 'homeLng': 72.8318, 'isWayPoint': true},
-          {'id': 'static_1_2', 'name': 'Turner Heights', 'homeLat': 19.0620, 'homeLng': 72.8350, 'address': 'Turner Road, Bandra'},
-          {'id': 'road_1_2_3a', 'name': '', 'homeLat': 19.0625, 'homeLng': 72.8360, 'isWayPoint': true},
-          {'id': 'road_1_2_3b', 'name': '', 'homeLat': 19.0645, 'homeLng': 72.8340, 'isWayPoint': true},
-          {'id': 'static_1_3', 'name': 'Sea View Apts', 'homeLat': 19.0650, 'homeLng': 72.8300, 'address': 'Perry Cross Road'},
-          {'id': 'road_1_3_4a', 'name': '', 'homeLat': 19.0610, 'homeLng': 72.8260, 'isWayPoint': true},
-          {'id': 'road_1_3_4b', 'name': '', 'homeLat': 19.0585, 'homeLng': 72.8255, 'isWayPoint': true},
-          {'id': 'static_1_4', 'name': 'Garden View', 'homeLat': 19.0570, 'homeLng': 72.8250, 'address': 'St. Andrews Road'},
-        ],
-        'Ward 2': [
-          {'id': 'static_2_1', 'name': 'Dharavi Point 1', 'homeLat': 19.0400, 'homeLng': 72.8500, 'address': '90 Feet Road'},
-          {'id': 'road_2_1_2a', 'name': '', 'homeLat': 19.0420, 'homeLng': 72.8520, 'isWayPoint': true},
-          {'id': 'road_2_1_2b', 'name': '', 'homeLat': 19.0440, 'homeLng': 72.8540, 'isWayPoint': true},
-          {'id': 'static_2_2', 'name': 'Sion Circle Res', 'homeLat': 19.0450, 'homeLng': 72.8550, 'address': 'Sion East'},
-          {'id': 'road_2_2_3', 'name': '', 'homeLat': 19.0470, 'homeLng': 72.8530, 'isWayPoint': true},
-          {'id': 'static_2_3', 'name': 'Link Road Apts', 'homeLat': 19.0480, 'homeLng': 72.8520, 'address': 'Bandra Link Rd'},
-          {'id': 'road_2_3_4', 'name': '', 'homeLat': 19.0370, 'homeLng': 72.8460, 'isWayPoint': true},
-          {'id': 'static_2_4', 'name': 'Sector 7 Res', 'homeLat': 19.0350, 'homeLng': 72.8450, 'address': 'Dharavi Sector 7'},
-        ],
-        'Ward 3': [
-          {'id': 'static_3_1', 'name': 'BKC One Stop', 'homeLat': 19.0760, 'homeLng': 72.8777, 'address': 'BKC G Block'},
-          {'id': 'road_3_1_2', 'name': '', 'homeLat': 19.0780, 'homeLng': 72.8820, 'isWayPoint': true},
-          {'id': 'static_3_2', 'name': 'Kurla West Res', 'homeLat': 19.0800, 'homeLng': 72.8850, 'address': 'LBS Marg'},
-          {'id': 'road_3_2_3a', 'name': '', 'homeLat': 19.0830, 'homeLng': 72.8840, 'isWayPoint': true},
-          {'id': 'road_3_2_3b', 'name': '', 'homeLat': 19.0845, 'homeLng': 72.8830, 'isWayPoint': true},
-          {'id': 'static_3_3', 'name': 'Ind Estate Res', 'homeLat': 19.0850, 'homeLng': 72.8820, 'address': 'Kurla Industrial Estate'},
-          {'id': 'road_3_3_4', 'name': '', 'homeLat': 19.0740, 'homeLng': 72.8730, 'isWayPoint': true},
-          {'id': 'static_3_4', 'name': 'BKC North Res', 'homeLat': 19.0720, 'homeLng': 72.8700, 'address': 'BKC North'},
-        ],
-      }[demoWard] ?? [];
-
-      return Scaffold(
-        backgroundColor: Colors.white,
-        body: _buildRouteMapFromData(demoWard, localFallbackResidents),
-      );
-    }
-    // --- END DEMO MODE ---
+    // Removed Dummy Location Logic
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -177,6 +130,12 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
       // Automatic Proximity Mark
       if (_currentPos != null) {
         final dist = Geolocator.distanceBetween(_currentPos!.latitude, _currentPos!.longitude, pos.latitude, pos.longitude);
+        
+        if (dist <= 50 && !_fcmNotifiedIds.contains(houses[i].id)) {
+           _fcmNotifiedIds.add(houses[i].id);
+           FcmService().sendArrivalAlert(houses[i].id);
+        }
+
         if (dist < 30) _collectedIds.add(houses[i].id); 
       }
 

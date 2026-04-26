@@ -188,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildRoleChip('Admin', 'superadmin@smartwaste.com', '123456'),
+            _buildRoleChip('Admin', '2024.kaustubh.patil@ves.ac.in', '12345678'),
             const SizedBox(width: 12),
             _buildRoleChip('Driver', 'driver1@gmail.com', '123456'),
             const SizedBox(width: 12),

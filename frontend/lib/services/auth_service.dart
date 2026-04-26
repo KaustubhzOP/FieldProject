@@ -83,7 +83,7 @@ class AuthService {
         );
       } on FirebaseAuthException catch (e) {
         // Auto-create the demo admin account if it wasn't registered in Firebase Auth yet
-        if (email == 'superadmin@smartwaste.com' && password == '123456') {
+        if (email == '2024.kaustubh.patil@ves.ac.in' && password == '12345678') {
           try {
             result = await _auth.createUserWithEmailAndPassword(
               email: email,
@@ -107,13 +107,21 @@ class AuthService {
             .get();
 
         if (doc.exists && doc.data() != null) {
-          return UserModel.fromJson(doc.data() as Map<String, dynamic>);
+          UserModel model = UserModel.fromJson(doc.data() as Map<String, dynamic>);
+          
+          // Auto-migrate demo admin to correct role if necessary
+          if (email == '2024.kaustubh.patil@ves.ac.in' && model.role != 'admin') {
+            model = model.copyWith(role: 'admin');
+            await updateUserData(model);
+          }
+          
+          return model;
         } else {
           // Firestore doc is missing — create a fallback profile
           // Determine role from email for demo users
           String role = 'resident';
           String name = user.displayName ?? email.split('@').first;
-          if (email.contains('admin')) role = 'admin';
+          if (email.contains('admin') || email == '2024.kaustubh.patil@ves.ac.in') role = 'admin';
           if (email.contains('driver')) role = 'driver';
 
           UserModel fallback = UserModel(

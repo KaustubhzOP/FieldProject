@@ -85,14 +85,15 @@ class AdminDashboardScreen extends StatelessWidget {
               .snapshots(),
           builder: (context, driverSnapshot) {
             final activeTrucks = driverSnapshot.hasData ? driverSnapshot.data!.docs.length.toString().padLeft(2, '0') : '...';
+            final bool isDesktop = MediaQuery.of(context).size.width > 900;
             
             return GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
+              crossAxisCount: isDesktop ? 4 : 2, // 4 columns on desktop
               crossAxisSpacing: 16,
               mainAxisSpacing: 16,
-              childAspectRatio: 1.1,
+              childAspectRatio: isDesktop ? 1.5 : 1.1,
               children: [
                 _buildStatCard('Active Trucks', activeTrucks, Icons.local_shipping_rounded, AppColors.accent),
                 _buildStatCard('Verifications', pendingCount, Icons.verified_user_rounded, Colors.tealAccent),
@@ -133,72 +134,83 @@ class AdminDashboardScreen extends StatelessWidget {
   }
 
   Widget _buildActionPanel(BuildContext context, AuthService authService) {
-    return Column(
-      children: [
-        _buildAdvancedActionTile(
-          context,
-          'Route Assignments',
-          'Manage truck paths and ward limits',
-          Icons.alt_route_rounded,
-          AppColors.accent,
-          () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAssignRouteScreen())),
-        ),
-        StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance.collection('users').where('homeStatus', whereIn: ['pending_approval', 'pending_removal']).snapshots(),
-          builder: (context, snapshot) {
-            int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
-            return _buildAdvancedActionTile(
-              context,
-              'Verification Queue',
-              'Process resident home location requests',
-              Icons.playlist_add_check_rounded,
-              Colors.tealAccent,
-              () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminHomeRequestsScreen())),
-              badge: count > 0 ? count.toString() : null,
-            );
-          }
-        ),
-        _buildAdvancedActionTile(
-          context,
-          'System Diagnostics',
-          'Optimize fleet and resident pickups',
-          Icons.terminal_rounded,
-          Colors.white70,
-          () async {
-            // Show Loading
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              builder: (ctx) => const Center(child: CircularProgressIndicator(color: AppColors.accent)),
-            );
-            
-            try {
-              await authService.pruneLegacyDrivers(); // Cleanup first
-              await authService.seedDummyTrucks();    // Keep 1-5
-              await authService.seedDemoResidents();  // Add pickups
-              
-              if (context.mounted) {
-                Navigator.pop(context); // Close loading
-                _showResultDialog(context, true, 'Environment Synced', 'Registry purged and demo data successfully seeded.');
-              }
-            } catch (e) {
-              if (context.mounted) {
-                Navigator.pop(context); // Close loading
-                _showResultDialog(context, false, 'Sync Failed', 'Could not reach server. Please check your internet connection and try again.\n\nError: $e');
-              }
+    final bool isDesktop = MediaQuery.of(context).size.width > 900;
+    
+    final List<Widget> tiles = [
+      _buildAdvancedActionTile(
+        context,
+        'Route Assignments',
+        'Manage truck paths and ward limits',
+        Icons.alt_route_rounded,
+        AppColors.accent,
+        () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAssignRouteScreen())),
+      ),
+      StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance.collection('users').where('homeStatus', whereIn: ['pending_approval', 'pending_removal']).snapshots(),
+        builder: (context, snapshot) {
+          int count = snapshot.hasData ? snapshot.data!.docs.length : 0;
+          return _buildAdvancedActionTile(
+            context,
+            'Verification Queue',
+            'Process resident home location requests',
+            Icons.playlist_add_check_rounded,
+            Colors.tealAccent,
+            () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminHomeRequestsScreen())),
+            badge: count > 0 ? count.toString() : null,
+          );
+        }
+      ),
+      _buildAdvancedActionTile(
+        context,
+        'System Diagnostics',
+        'Optimize fleet and resident pickups',
+        Icons.terminal_rounded,
+        Colors.white70,
+        () async {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => const Center(child: CircularProgressIndicator(color: AppColors.accent)),
+          );
+          try {
+            await authService.pruneLegacyDrivers();
+            await authService.seedDummyTrucks();
+            await authService.seedDemoResidents();
+            if (context.mounted) {
+              Navigator.pop(context);
+              _showResultDialog(context, true, 'Environment Synced', 'Registry purged and demo data successfully seeded.');
             }
-          },
-        ),
-        _buildAdvancedActionTile(
-          context,
-          'Community Hub',
-          'Respond to resident complaints',
-          Icons.forum_rounded,
-          Colors.orangeAccent,
-          () => onTabSelected?.call(2),
-        ),
-      ],
-    );
+          } catch (e) {
+            if (context.mounted) {
+              Navigator.pop(context);
+              _showResultDialog(context, false, 'Sync Failed', 'Could not reach server.\n\nError: $e');
+            }
+          }
+        },
+      ),
+      _buildAdvancedActionTile(
+        context,
+        'Community Hub',
+        'Respond to resident complaints',
+        Icons.forum_rounded,
+        Colors.orangeAccent,
+        () => onTabSelected?.call(2),
+      ),
+    ];
+
+    if (isDesktop) {
+      return GridView.count(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        crossAxisCount: 2,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 0,
+        childAspectRatio: 3.5,
+        children: tiles,
+      );
+    }
+
+    return Column(children: tiles);
   }
 
   void _showResultDialog(BuildContext context, bool success, String title, String message) {

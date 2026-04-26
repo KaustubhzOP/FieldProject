@@ -6,6 +6,11 @@ import 'complaint_management_screen.dart';
 import 'analytics_screen.dart';
 import 'profile_screen.dart';
 
+import '../../services/notification_service.dart';
+
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'admin_web_home.dart';
+
 class AdminHome extends StatefulWidget {
   const AdminHome({super.key});
 
@@ -17,16 +22,27 @@ class _AdminHomeState extends State<AdminHome> {
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
+  @override
+  void initState() {
+    super.initState();
+    NotificationService().processPendingNotifications();
+  }
+
   void _onTabSelected(int index) {
     if (mounted) setState(() => _selectedIndex = index);
   }
 
   @override
   Widget build(BuildContext context) {
+    // If on Web and screen is wide, use the dedicated Web Dashboard
+    if (kIsWeb && MediaQuery.of(context).size.width > 900) {
+      return const AdminWebHome();
+    }
+
     final List<Widget> screens = [
       AdminDashboardScreen(onTabSelected: _onTabSelected),
       const AdminTrackingScreen(),
-      const AdminComplaintManagementScreen(),
+      AdminComplaintManagementScreen(),
       const AdminAnalyticsScreen(),
       const AdminProfileScreen(),
     ];
