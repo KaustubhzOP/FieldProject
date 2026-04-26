@@ -83,24 +83,27 @@ class _SignupScreenState extends State<SignupScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 500),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 28),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                 const SizedBox(height: 40),
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
                     padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(10)),
-                    child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                    decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
+                    child: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.primary, size: 18),
                   ),
                 ),
                 const SizedBox(height: 30),
-                const Text('Create Account', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+                const Text('Create Account', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textHeader)),
                 const SizedBox(height: 8),
                 const Text('Join the smart waste management community today.', style: TextStyle(color: AppColors.textBody, fontSize: 15)),
                 const SizedBox(height: 40),
@@ -129,11 +132,11 @@ class _SignupScreenState extends State<SignupScreen> {
                 DropdownButtonFormField<String>(
                   value: _wardController.text,
                   items: ['Ward 1', 'Ward 2', 'Ward 3', 'Ward 4', 'Ward 5']
-                      .map((w) => DropdownMenuItem(value: w, child: Text(w, style: const TextStyle(color: Colors.white))))
+                      .map((w) => DropdownMenuItem(value: w, child: Text(w, style: const TextStyle(color: AppColors.textHeader))))
                       .toList(),
                   onChanged: (val) => setState(() => _wardController.text = val ?? 'Ward 1'),
-                  dropdownColor: AppColors.secondary,
-                  iconEnabledColor: AppColors.accent,
+                  dropdownColor: AppColors.card,
+                  iconEnabledColor: AppColors.primary,
                   decoration: const InputDecoration(prefixIcon: Icon(Icons.business_rounded, size: 20)),
                 ),
                 
@@ -162,14 +165,16 @@ class _SignupScreenState extends State<SignupScreen> {
                   builder: (context, auth, _) => ElevatedButton(
                     onPressed: auth.isLoading ? null : _handleSignup,
                     child: auth.isLoading 
-                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.card))
                       : const Text('Create Account'),
                   ),
                 ),
                 const SizedBox(height: 30),
                 _buildFooterLink(),
-                const SizedBox(height: 50),
-              ],
+                const SizedBox(height: 40),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -178,7 +183,7 @@ class _SignupScreenState extends State<SignupScreen> {
   }
 
   Widget _buildFieldLabel(String label) {
-    return Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14));
+    return Text(label, style: const TextStyle(color: AppColors.textHeader, fontWeight: FontWeight.w600, fontSize: 14));
   }
 
   Widget _buildFooterLink() {
@@ -188,7 +193,7 @@ class _SignupScreenState extends State<SignupScreen> {
         const Text("Already a member? ", style: TextStyle(color: AppColors.textBody)),
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Sign In', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+          child: const Text('Sign In', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
         ),
       ],
     );

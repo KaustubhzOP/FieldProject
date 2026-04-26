@@ -15,169 +15,168 @@ class AdminProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          // 1. Nebula Background Header
-          _buildNebulaHeader(context),
-          
-          // 2. Scrollable Content
-          SafeArea(
-            child: SingleChildScrollView(
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Header with Avatar Integration
+            Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                Container(
+                  height: 140,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(32),
+                      bottomRight: Radius.circular(32),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 40),
+                  child: _buildProfileAvatar(context, user),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 32),
+            
+            Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 children: [
-                  const SizedBox(height: 40),
-                  _buildProfileAvatar(context, user),
-                  const SizedBox(height: 40),
-                  _buildGlassSection(
+                  _buildProfileSection(
                     title: 'SYSTEM CREDENTIALS',
                     children: [
-                      _buildGlassTile(Icons.vpn_key_rounded, 'Access Identifier', user?.email ?? ''),
-                      _buildGlassTile(Icons.phone_rounded, 'Emergency Contact', user?.phone ?? 'Not set'),
-                      _buildGlassTile(Icons.shield_rounded, 'Authority Level', 'Super Administrator'),
+                      _buildProfileTile(Icons.vpn_key_rounded, 'Access Identifier', user?.email ?? ''),
+                      _buildProfileTile(Icons.phone_rounded, 'Emergency Contact', user?.phone ?? 'Not set'),
+                      _buildProfileTile(Icons.shield_rounded, 'Authority Level', 'Super Administrator'),
                     ],
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 48),
                   _buildSignOutButton(context, authProvider),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 60),
                 ],
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildNebulaHeader(BuildContext context) {
-    return Container(
-      height: 300,
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.tealAccent,
-            Color(0xFF0F172A),
-            AppColors.background,
-          ],
-          stops: [0.0, 0.6, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -30,
-            left: -30,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Container(
-                width: 180, height: 180,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.accent.withOpacity(0.1)),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildProfileAvatar(BuildContext context, dynamic user) {
     final initials = user?.name.substring(0, 1).toUpperCase() ?? 'A';
     return Column(
       children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 120, height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.tealAccent.withOpacity(0.2), width: 1.5),
-                boxShadow: [BoxShadow(color: Colors.tealAccent.withOpacity(0.2), blurRadius: 40, spreadRadius: 5)],
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
-            ),
-            CircleAvatar(
-              radius: 54,
-              backgroundColor: AppColors.secondary,
-              child: Text(initials, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
-            ),
-          ],
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 54,
+            backgroundColor: AppColors.primary,
+            child: Text(initials, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: AppColors.card, letterSpacing: -1)),
+          ),
         ),
         const SizedBox(height: 20),
-        Text(user?.name ?? 'System Admin', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
-        const SizedBox(height: 6),
+        Text(user?.name ?? 'System Admin', style: const TextStyle(color: AppColors.textHeader, fontSize: 32, fontWeight: FontWeight.bold, letterSpacing: -1)),
+        const SizedBox(height: 12),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(color: Colors.tealAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.tealAccent.withOpacity(0.2))),
-          child: const Text('CENTRAL AUTHORITY', style: TextStyle(color: Colors.tealAccent, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.08), 
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: AppColors.primary.withOpacity(0.15)),
+          ),
+          child: const Text('CENTRAL AUTHORITY', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
         ),
       ],
     );
   }
 
-  Widget _buildGlassSection({required String title, required List<Widget> children}) {
+  Widget _buildProfileSection({required String title, required List<Widget> children}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 12),
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
           child: Text(title, style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
         ),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.5),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              child: Column(children: children),
-            ),
+            ],
+            border: Border.all(color: AppColors.border, width: 1),
           ),
+          child: Column(children: _addDividers(children)),
         ),
       ],
     );
   }
 
-  Widget _buildGlassTile(IconData icon, String label, String value) {
+  List<Widget> _addDividers(List<Widget> items) {
+    List<Widget> result = [];
+    for (int i = 0; i < items.length; i++) {
+      result.add(items[i]);
+      if (i < items.length - 1) {
+        result.add(const Divider(height: 1, indent: 72, endIndent: 20, color: AppColors.border));
+      }
+    }
+    return result;
+  }
+
+  Widget _buildProfileTile(IconData icon, String label, String value) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       leading: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.tealAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
-        child: Icon(icon, color: Colors.tealAccent, size: 22),
+        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(12)),
+        child: Icon(icon, color: AppColors.primary, size: 24),
       ),
-      title: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
-      subtitle: Text(value, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      title: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 4.0),
+        child: Text(value, style: const TextStyle(color: AppColors.textHeader, fontSize: 16, fontWeight: FontWeight.bold)),
+      ),
     );
   }
 
   Widget _buildSignOutButton(BuildContext context, AuthProvider authProvider) {
     return SizedBox(
       width: double.infinity,
-      child: OutlinedButton(
+      child: OutlinedButton.icon(
         onPressed: () async {
           await authProvider.logout();
           if (context.mounted) {
             Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
           }
         },
+        icon: const Icon(Icons.logout_rounded, size: 20),
+        label: const Text('TERMINATE SYSTEM SESSION', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.5)),
         style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.error,
           side: const BorderSide(color: AppColors.error, width: 1.5),
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.power_settings_new_rounded, color: AppColors.error, size: 20),
-            SizedBox(width: 12),
-            Text('TERMINATE AUTHORITY', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5)),
-          ],
+          padding: const EdgeInsets.symmetric(vertical: 20),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
         ),
       ),
     );

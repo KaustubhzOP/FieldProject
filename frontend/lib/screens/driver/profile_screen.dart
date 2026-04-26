@@ -18,6 +18,12 @@ class DriverProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('My Profile', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.card,
+        elevation: 0,
+      ),
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('drivers').doc(user.id).snapshots(),
         builder: (context, snapshot) {
@@ -26,26 +32,42 @@ class DriverProfileScreen extends StatelessWidget {
           final String truckNo = driverData['truckNumber'] ?? 'Not Assigned';
           final String ward = driverData['ward'] ?? 'Not Assigned';
 
-          return Stack(
-            children: [
-              // 1. Nebula Background Header
-              _buildNebulaHeader(context),
-              
-              // 2. Scrollable Content
-              SafeArea(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+          return SingleChildScrollView(
+            child: Column(
+              children: [
+                // Header with Avatar
+                Stack(
+                  alignment: Alignment.topCenter,
+                  children: [
+                    Container(
+                      height: 100,
+                      decoration: const BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(32),
+                          bottomRight: Radius.circular(32),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 20),
+                      child: _buildProfileAvatar(context, user.name, isOnDuty),
+                    ),
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Column(
                     children: [
-                      const SizedBox(height: 40),
-                      _buildProfileAvatar(context, user.name, isOnDuty),
-                      const SizedBox(height: 40),
-                      _buildGlassSection(
+                      _buildProfileSection(
                         title: 'OPERATIONAL STATUS',
                         children: [
-                          _buildGlassTile(Icons.local_shipping_rounded, 'Fleet Asset', truckNo),
-                          _buildGlassTile(Icons.map_rounded, 'Assigned Zone', ward),
-                          _buildGlassTile(
+                          _buildProfileTile(Icons.local_shipping_rounded, 'Fleet Asset', truckNo),
+                          _buildProfileTile(Icons.map_rounded, 'Assigned Zone', ward),
+                          _buildProfileTile(
                             Icons.timer_rounded, 
                             'Duty Session', 
                             isOnDuty ? 'ACTIVE ON DUTY' : 'OFF DUTY',
@@ -54,57 +76,23 @@ class DriverProfileScreen extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 24),
-                      _buildGlassSection(
+                      _buildProfileSection(
                         title: 'ACCOUNT CREDENTIALS',
                         children: [
-                          _buildGlassTile(Icons.badge_rounded, 'Operator ID', user.id.substring(0, 8).toUpperCase()),
-                          _buildGlassTile(Icons.alternate_email_rounded, 'Access Email', user.email),
+                          _buildProfileTile(Icons.badge_rounded, 'Operator ID', user.id.substring(0, 8).toUpperCase()),
+                          _buildProfileTile(Icons.alternate_email_rounded, 'Access Email', user.email),
                         ],
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 32),
                       _buildSignOutButton(context, authProvider),
                       const SizedBox(height: 40),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildNebulaHeader(BuildContext context) {
-    return Container(
-      height: 300,
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF6366F1), // Indigo
-            Color(0xFF0F172A),
-            AppColors.background,
-          ],
-          stops: [0.0, 0.6, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -20,
-            right: -20,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
-              child: Container(
-                width: 150, height: 150,
-                decoration: BoxDecoration(shape: BoxShape.circle, color: Color(0xFF6366F1).withOpacity(0.1)),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -117,105 +105,123 @@ class DriverProfileScreen extends StatelessWidget {
           alignment: Alignment.center,
           children: [
             Container(
-              width: 120, height: 120,
+              padding: const EdgeInsets.all(4),
               decoration: BoxDecoration(
+                color: AppColors.card,
                 shape: BoxShape.circle,
-                border: Border.all(color: Colors.indigoAccent.withOpacity(0.2), width: 1.5),
-                boxShadow: [BoxShadow(color: Colors.indigoAccent.withOpacity(0.2), blurRadius: 40, spreadRadius: 5)],
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
               ),
-            ),
-            CircleAvatar(
-              radius: 54,
-              backgroundColor: AppColors.secondary,
-              child: Text(initials, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
+              child: CircleAvatar(
+                radius: 54,
+                backgroundColor: AppColors.primary,
+                child: Text(initials, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: AppColors.card, letterSpacing: -1)),
+              ),
             ),
             Positioned(
               bottom: 4,
               right: 4,
               child: Container(
-                width: 24, height: 24,
+                width: 28, height: 28,
                 decoration: BoxDecoration(
-                  color: isOnDuty ? AppColors.success : Colors.grey,
+                  color: isOnDuty ? AppColors.success : AppColors.textMuted,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.background, width: 3),
+                  border: Border.all(color: AppColors.card, width: 4),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4)],
                 ),
               ),
             ),
           ],
         ),
-        const SizedBox(height: 20),
-        Text(name, style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+        const SizedBox(height: 16),
+        Text(name, style: const TextStyle(color: AppColors.textHeader, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(color: Colors.indigoAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.indigoAccent.withOpacity(0.2))),
-          child: const Text('FLEET OPERATOR', style: TextStyle(color: Colors.indigoAccent, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withOpacity(0.1), 
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+          ),
+          child: const Text('FLEET OPERATOR', style: TextStyle(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
         ),
       ],
     );
   }
 
-  Widget _buildGlassSection({required String title, required List<Widget> children}) {
+  Widget _buildProfileSection({required String title, required List<Widget> children}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 12),
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
           child: Text(title, style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
         ),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.5),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              child: Column(children: children),
-            ),
+            ],
+            border: Border.all(color: AppColors.border, width: 1),
           ),
+          child: Column(children: _addDividers(children)),
         ),
       ],
     );
   }
 
-  Widget _buildGlassTile(IconData icon, String label, String value, {Color? valueColor}) {
+  List<Widget> _addDividers(List<Widget> items) {
+    List<Widget> result = [];
+    for (int i = 0; i < items.length; i++) {
+      result.add(items[i]);
+      if (i < items.length - 1) {
+        result.add(const Divider(height: 1, indent: 64, endIndent: 20, color: AppColors.border));
+      }
+    }
+    return result;
+  }
+
+  Widget _buildProfileTile(IconData icon, String label, String value, {Color? valueColor}) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.indigoAccent.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
-        child: Icon(icon, color: Colors.indigoAccent, size: 22),
+        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+        child: Icon(icon, color: AppColors.primary, size: 24),
       ),
-      title: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
-      subtitle: Text(value, style: TextStyle(color: valueColor ?? Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+      title: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w600)),
+      subtitle: Text(value, style: TextStyle(color: valueColor ?? AppColors.textHeader, fontSize: 15, fontWeight: FontWeight.bold)),
     );
   }
 
   Widget _buildSignOutButton(BuildContext context, AuthProvider authProvider) {
     return SizedBox(
       width: double.infinity,
-      child: OutlinedButton(
+      child: OutlinedButton.icon(
         onPressed: () async {
           await authProvider.logout();
           if (context.mounted) {
             Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginScreen()), (route) => false);
           }
         },
+        icon: const Icon(Icons.logout_rounded, size: 18),
+        label: const Text('QUIT SYSTEM SESSION', style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 1.2)),
         style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.error,
           side: const BorderSide(color: AppColors.error, width: 1.5),
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        ),
-        child: const Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.logout_rounded, color: AppColors.error, size: 20),
-            SizedBox(width: 12),
-            Text('QUIT SYSTEM', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5)),
-          ],
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );

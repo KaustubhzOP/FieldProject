@@ -15,6 +15,7 @@ class NotificationService {
   bool _listenersAttached = false;
   String? _pendingComplaintId;
   StreamSubscription? _complaintWatcher;
+  StreamSubscription? _userWatcher;
   final Set<String> _processedEvents = {}; // Deduplication for the current session
 
   static final NotificationService _instance = NotificationService._internal();
@@ -49,7 +50,7 @@ class NotificationService {
     );
 
     FirebaseMessaging.onMessage.listen((msg) {
-      if (msg.notification != null) _showLocalNotification(msg.notification!.title, msg.notification!.body, msg.data);
+      if (msg.notification != null) showLocalNotification(msg.notification!.title, msg.notification!.body, msg.data);
     });
 
     FirebaseMessaging.onMessageOpenedApp.listen((msg) => _handleNotificationClick(msg.data));
@@ -106,18 +107,44 @@ class NotificationService {
           }
         }
       });
+
+      // USER WATCHER: Notify for profile changes (Home Verification)
+      _userWatcher?.cancel();
+      _userWatcher = FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .snapshots()
+          .listen((snap) {
+        if (!snap.exists) return;
+        final data = snap.data();
+        final String? homeStatus = data?['homeStatus'];
+        
+        if (homeStatus == 'approved') {
+          _pingIfNew('home_verified_$userId', '✅ Home Verified', 'Your location has been approved! Your digital bin is now active.', 'home');
+        } else if (homeStatus == 'none' && data?['pendingLat'] == null) {
+          // If status moved to none and no pending data, it was likely rejected
+          _pingIfNew('home_rejected_$userId', '❌ Verification Declined', 'Your location request was declined. Please try again with a clearer position.', 'home');
+        }
+      });
     }
   }
 
-  void _pingIfNew(String eventKey, String title, String body, String complaintId) {
+  void _pingIfNew(String eventKey, String title, String body, String complaintId) async {
     if (_processedEvents.contains(eventKey)) return;
+    
+    // Check SharedPreferences for persistent deduplication
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool('notif_$eventKey') == true) return;
+
     _processedEvents.add(eventKey);
-    _showLocalNotification(title, body, {'type': 'status_update', 'complaintId': complaintId});
+    await prefs.setBool('notif_$eventKey', true);
+    
+    showLocalNotification(title, body, {'type': 'status_update', 'complaintId': complaintId});
   }
 
   void _handleNotificationClick(Map<String, dynamic> data) {
     final complaintId = data['complaintId'];
-    if (complaintId != null) {
+    if (complaintId != null && complaintId != 'home') {
       if (SmartWasteApp.navigatorKey.currentState == null) _pendingComplaintId = complaintId;
       else _navigateToComplaint(complaintId);
     }
@@ -129,7 +156,7 @@ class NotificationService {
     );
   }
 
-  Future<void> _showLocalNotification(String? title, String? body, Map<String, dynamic> data) async {
+  Future<void> showLocalNotification(String? title, String? body, Map<String, dynamic> data) async {
     const android = AndroidNotificationDetails(
       'smart_waste_channel', 'Smart Waste Notifications',
       importance: Importance.max, priority: Priority.high, playSound: true,

@@ -70,16 +70,19 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         decoration: const BoxDecoration(color: AppColors.background),
         child: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 60),
-                  _buildHeader(),
-                  const SizedBox(height: 50),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 450),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 60),
+                      _buildHeader(),
+                      const SizedBox(height: 50),
                   
                   _buildFieldLabel('Email Address'),
                   const SizedBox(height: 10),
@@ -115,7 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     alignment: Alignment.centerRight,
                     child: TextButton(
                       onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ForgotPasswordScreen())),
-                      child: const Text('Forgot Password?', style: TextStyle(color: AppColors.accent, fontSize: 13)),
+                      child: const Text('Forgot Password?', style: TextStyle(color: AppColors.primary, fontSize: 13)),
                     ),
                   ),
                   
@@ -125,7 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     builder: (context, auth, _) => ElevatedButton(
                       onPressed: auth.isLoading ? null : _handleLogin,
                       child: auth.isLoading 
-                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                        ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.card))
                         : const Text('Sign In'),
                     ),
                   ),
@@ -135,8 +138,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   
                   const SizedBox(height: 32),
                   _buildFooterLink(),
-                  const SizedBox(height: 40),
-                ],
+                      const SizedBox(height: 40),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),
@@ -152,14 +157,13 @@ class _LoginScreenState extends State<LoginScreen> {
         Container(
           height: 60, width: 60,
           decoration: BoxDecoration(
-            gradient: AppColors.accentGradient,
-            borderRadius: BorderRadius.circular(15),
-            boxShadow: [BoxShadow(color: AppColors.accent.withOpacity(0.4), blurRadius: 20)],
+            color: AppColors.primary,
+            borderRadius: BorderRadius.circular(8),
           ),
-          child: const Icon(Icons.recycling_rounded, color: Colors.white, size: 35),
+          child: const Icon(Icons.recycling_rounded, color: AppColors.card, size: 35),
         ),
         const SizedBox(height: 24),
-        const Text('Welcome Back', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Colors.white)),
+        const Text('Welcome Back', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: AppColors.textHeader)),
         const SizedBox(height: 8),
         const Text('Enter your credentials to access the fleet monitoring system.', 
                    style: TextStyle(color: AppColors.textBody, fontSize: 15)),
@@ -168,7 +172,7 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Widget _buildFieldLabel(String label) {
-    return Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14));
+    return Text(label, style: const TextStyle(color: AppColors.textHeader, fontWeight: FontWeight.w600, fontSize: 14));
   }
 
   Widget _buildQuickSignIn() {
@@ -176,12 +180,12 @@ class _LoginScreenState extends State<LoginScreen> {
       children: [
         Row(
           children: [
-            Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
+            const Expanded(child: Divider(color: AppColors.border)),
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 16),
               child: Text('EXPLORE AS', style: TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 1.2)),
             ),
-            Expanded(child: Divider(color: Colors.white.withOpacity(0.1))),
+            const Expanded(child: Divider(color: AppColors.border)),
           ],
         ),
         const SizedBox(height: 20),
@@ -209,11 +213,11 @@ class _LoginScreenState extends State<LoginScreen> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.secondary,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.05)),
+          color: AppColors.card,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.border),
         ),
-        child: Text(label, style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+        child: Text(label, style: const TextStyle(color: AppColors.textHeader, fontSize: 12, fontWeight: FontWeight.bold)),
       ),
     );
   }
@@ -225,7 +229,7 @@ class _LoginScreenState extends State<LoginScreen> {
         const Text("New to the system? ", style: TextStyle(color: AppColors.textBody)),
         TextButton(
           onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SignupScreen())),
-          child: const Text('Create Account', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+          child: const Text('Create Account', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
         ),
       ],
     );

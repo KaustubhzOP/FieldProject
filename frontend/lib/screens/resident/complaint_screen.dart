@@ -45,22 +45,22 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   void _showImagePickerOptions(StateSetter setModalState) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppColors.secondary,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(15))),
+      backgroundColor: AppColors.card,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(8))),
       builder: (ctx) => SafeArea(
         child: Wrap(
           children: [
             ListTile(
-              leading: const Icon(Icons.camera_alt, color: AppColors.accent),
-              title: const Text('Take Photo', style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.camera_alt, color: AppColors.primary),
+              title: const Text('Take Photo', style: TextStyle(color: AppColors.textHeader)),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickImage(setModalState, ImageSource.camera);
               },
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library, color: AppColors.accent),
-              title: const Text('Choose from Gallery', style: TextStyle(color: Colors.white)),
+              leading: const Icon(Icons.photo_library, color: AppColors.primary),
+              title: const Text('Choose from Gallery', style: TextStyle(color: AppColors.textHeader)),
               onTap: () {
                 Navigator.pop(ctx);
                 _pickImage(setModalState, ImageSource.gallery);
@@ -89,11 +89,11 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
         resizeToAvoidBottomInset: true,
         appBar: AppBar(
           title: const Text('Complaints & Requests'),
-          bottom: const TabBar(
-            labelColor: Colors.blue,
-            unselectedLabelColor: Colors.grey,
-            indicatorColor: Colors.blue,
-            tabs: [
+          bottom: TabBar(
+            labelColor: AppColors.card,
+            unselectedLabelColor: AppColors.card.withOpacity(0.7),
+            indicatorColor: AppColors.card,
+            tabs: const [
               Tab(text: 'Pending'),
               Tab(text: 'Resolved'),
             ],
@@ -143,7 +143,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
           itemCount: filtered.length,
           itemBuilder: (context, index) {
             final c = filtered[index];
-            final color = c.status == 'resolved' ? Colors.green : (c.status == 'in_progress' ? Colors.blue : Colors.orange);
+            final color = c.status == 'resolved' ? AppColors.success : (c.status == 'in_progress' ? AppColors.primary : AppColors.warning);
             final timeStr = "${c.createdAt.day}/${c.createdAt.month}/${c.createdAt.year}";
             return _complaintSummaryItem(context, c.id, c.type, c.status.toUpperCase(), color, timeStr, c.description);
           },
@@ -155,14 +155,14 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
   Widget _complaintSummaryItem(BuildContext context, String id, String type, String status, Color color, String time, String desc) {
     return Card(
       elevation: 0,
-      color: AppColors.secondary,
+      color: AppColors.card,
       margin: const EdgeInsets.only(bottom: 12),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15), 
-        side: BorderSide(color: Colors.white.withOpacity(0.05))
+        borderRadius: BorderRadius.circular(8), 
+        side: const BorderSide(color: AppColors.border)
       ),
       child: ListTile(
-        title: Text(id, style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        title: Text(id, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textHeader)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -184,7 +184,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
             ),
             const SizedBox(width: 8),
             IconButton(
-              icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
+              icon: const Icon(Icons.delete_outline, color: AppColors.error, size: 20),
               onPressed: () => _confirmDeletion(context, id),
             ),
           ],
@@ -197,8 +197,8 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.secondary,
-        title: const Text('Delete Complaint?', style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.card,
+        title: const Text('Delete Complaint?', style: TextStyle(color: AppColors.textHeader)),
         content: const Text('This action cannot be undone.', style: TextStyle(color: AppColors.textBody)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('CANCEL')),
@@ -207,7 +207,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
               context.read<ComplaintProvider>().deleteComplaint(id);
               Navigator.pop(ctx);
             },
-            child: const Text('DELETE', style: TextStyle(color: Colors.redAccent)),
+            child: const Text('DELETE', style: TextStyle(color: AppColors.error)),
           ),
         ],
       ),
@@ -236,9 +236,9 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Raise New Complaint', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: Colors.white)),
+                      const Text('Raise New Complaint', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20, color: AppColors.textHeader)),
                       IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white54),
+                        icon: const Icon(Icons.close, color: AppColors.textMuted),
                         onPressed: () {
                           _resetForm();
                           Navigator.pop(context);
@@ -255,12 +255,12 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                   const SizedBox(height: 4),
                   DropdownButtonFormField<String>(
                     value: _selectedType,
-                    dropdownColor: AppColors.secondary,
-                    style: const TextStyle(color: Colors.white),
+                    dropdownColor: AppColors.card,
+                    style: const TextStyle(color: AppColors.textBody),
                     decoration: InputDecoration(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 12),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white24)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
                     ),
                     items: _complaintTypes.map((type) => DropdownMenuItem(value: type, child: Text(type))).toList(),
                     onChanged: (value) => setModalState(() => _selectedType = value!),
@@ -280,9 +280,9 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                           setModalState(() => _priority = p);
                           setState(() => _priority = p);
                         },
-                        selectedColor: AppColors.accent.withOpacity(0.2),
-                        backgroundColor: AppColors.secondary,
-                        labelStyle: TextStyle(color: isSelected ? AppColors.accent : Colors.white),
+                        selectedColor: AppColors.primary.withOpacity(0.2),
+                        backgroundColor: AppColors.card,
+                        labelStyle: TextStyle(color: isSelected ? AppColors.primary : AppColors.textBody),
                       );
                     }).toList(),
                   ),
@@ -292,14 +292,14 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                     TextFormField(
                       controller: _descriptionController,
                       maxLines: 4,
-                      style: const TextStyle(color: Colors.white),
+                      style: const TextStyle(color: AppColors.textBody),
                       decoration: InputDecoration(
                         hintText: 'Enter details here...',
-                        hintStyle: const TextStyle(color: Colors.white38),
+                        hintStyle: const TextStyle(color: AppColors.textMuted),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: Colors.white24)),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
                         helperText: '📍 Location attached successfully',
-                        helperStyle: const TextStyle(color: Colors.teal, fontSize: 10),
+                        helperStyle: const TextStyle(color: AppColors.success, fontSize: 10),
                       ),
                       validator: (val) => val == null || val.isEmpty ? 'Description required' : null,
                     ),
@@ -312,9 +312,9 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                       height: 100,
                       width: double.infinity,
                       decoration: BoxDecoration(
-                        color: AppColors.secondary,
+                        color: AppColors.surface,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.white24),
+                        border: Border.all(color: AppColors.border),
                       ),
                       child: _base64Image != null
                           ? ClipRRect(
@@ -324,9 +324,9 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                           : const Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.add_a_photo, color: Colors.white54, size: 32),
+                                Icon(Icons.add_a_photo, color: AppColors.border, size: 32),
                                 SizedBox(height: 8),
-                                Text('Tap to Upload', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                                Text('Tap to Upload', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
                               ],
                             ),
                     ),
@@ -378,9 +378,9 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
                       label: const Text('Submit Complaint'),
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.all(16),
-                        backgroundColor: Colors.blue,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: AppColors.card,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                       ),
                     ),
                   ),
@@ -420,13 +420,13 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
       builder: (ctx) => Center(
         child: Container(
           padding: const EdgeInsets.all(30),
-          decoration: BoxDecoration(color: AppColors.secondary, borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.teal.withOpacity(0.5))),
+          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.success)),
           child: const Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.check_circle_outline, color: Colors.teal, size: 60),
+              Icon(Icons.check_circle_outline, color: AppColors.success, size: 60),
               SizedBox(height: 20),
-              Text('Complaint Submitted!', style: TextStyle(fontSize: 18, color: Colors.white, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
+              Text('Complaint Submitted!', style: TextStyle(fontSize: 18, color: AppColors.textHeader, fontWeight: FontWeight.bold, decoration: TextDecoration.none)),
               SizedBox(height: 8),
               Text('Our team will address this soon.', style: TextStyle(fontSize: 13, color: AppColors.textMuted, decoration: TextDecoration.none)),
             ],
@@ -446,8 +446,8 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: hasLoc ? Colors.teal.withOpacity(0.1) : Colors.orange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
+        color: hasLoc ? AppColors.success.withOpacity(0.1) : AppColors.warning.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: hasLoc ? Colors.teal.withOpacity(0.3) : Colors.orange.withOpacity(0.3)),
       ),
       child: Row(
@@ -476,7 +476,7 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
         height: 80,
         width: double.infinity,
         decoration: BoxDecoration(
-          color: AppColors.secondary,
+          color: AppColors.card,
           borderRadius: BorderRadius.circular(15),
           border: Border.all(color: Colors.orange.withOpacity(0.3)),
         ),
@@ -495,12 +495,12 @@ class _ComplaintScreenState extends State<ComplaintScreen> {
       height: 120,
       width: double.infinity,
       decoration: BoxDecoration(
-        color: AppColors.secondary,
-        borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: Colors.white10),
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(8),
         child: GoogleMap(
           key: const Key('complaint_preview_map'),
           initialCameraPosition: CameraPosition(target: pos, zoom: 15),

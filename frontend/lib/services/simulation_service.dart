@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geolocator/geolocator.dart';
 import '../utils/constants.dart';
 
 class FleetSimulationService {
@@ -92,11 +93,32 @@ class FleetSimulationService {
       
       final trucks = ['driver_1', 'driver_2', 'driver_3', 'driver_4', 'driver_5'];
       for (int i = 0; i < trucks.length; i++) {
-        // Create a circular path around the default location
-        final double radius = 0.005 + (i * 0.002);
-        final double lat = AppConstants.defaultLatitude + (radius * sin(angle + i));
-        final double lng = AppConstants.defaultLongitude + (radius * cos(angle + i));
-        final double heading = (angle * 180 / pi) % 360;
+        final truckDoc = await _firestore.collection('drivers').doc(trucks[i]).get();
+        final truckData = truckDoc.data();
+        
+        // If truck is summoned (pinned), move towards the pin instead of circular path
+        double lat, lng, heading;
+        final targetLat = truckData?['targetLat'] as double?;
+        final targetLng = truckData?['targetLng'] as double?;
+        
+        if (targetLat != null && targetLng != null) {
+          final currentLoc = truckData!['liveLocation'];
+          double curLat = (currentLoc['lat'] as num).toDouble();
+          double curLng = (currentLoc['lng'] as num).toDouble();
+          
+          // Move 20% towards target (Faster approach for testing)
+          lat = curLat + (targetLat - curLat) * 0.2;
+          lng = curLng + (targetLng - curLng) * 0.2;
+          heading = 225.0; // Inbound
+          
+          print('DEBUG: Truck Alpha is approaching... Current Dist: ${Geolocator.distanceBetween(curLat, curLng, targetLat, targetLng).toStringAsFixed(1)}m');
+        } else {
+          // Normal circular path
+          final double radius = 0.005 + (i * 0.002);
+          lat = AppConstants.defaultLatitude + (radius * sin(angle + i));
+          lng = AppConstants.defaultLongitude + (radius * cos(angle + i));
+          heading = (angle * 180 / pi) % 360;
+        }
 
         batch.update(_firestore.collection('drivers').doc(trucks[i]), {
           'liveLocation': {

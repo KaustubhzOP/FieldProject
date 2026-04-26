@@ -43,12 +43,12 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
   Future<void> _loadIcons() async {
     final truck = await MapMarkerUtil.createCustomMarker(
       icon: Icons.local_shipping_rounded,
-      color: AppColors.accent,
+      color: AppColors.primary,
       size: 100,
     );
     final home = await MapMarkerUtil.createCustomMarker(
       icon: Icons.home_rounded,
-      color: Colors.redAccent,
+      color: AppColors.error,
       size: 100,
     );
     if (mounted) {
@@ -86,12 +86,12 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.read<AuthProvider>().currentUser;
-    if (user == null) return const Scaffold(backgroundColor: Colors.white, body: Center(child: Text('Unauthorized Access')));
+    if (user == null) return const Scaffold(backgroundColor: AppColors.background, body: Center(child: Text('Unauthorized Access')));
 
     // Removed Dummy Location Logic
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: StreamBuilder<DocumentSnapshot>(
         stream: FirebaseFirestore.instance.collection('drivers').doc(user.id).snapshots(),
         builder: (context, driverSnapshot) {
@@ -170,7 +170,7 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
           initialCameraPosition: CameraPosition(target: _currentPos != null ? LatLng(_currentPos!.latitude, _currentPos!.longitude) : const LatLng(19.076, 72.877), zoom: 17),
           markers: markers,
           polylines: {
-            Polyline(polylineId: const PolylineId('path'), points: polylinePoints, color: const Color(0xFF2979FF), width: 6),
+            Polyline(polylineId: const PolylineId('path'), points: polylinePoints, color: AppColors.primary, width: 6),
           },
           myLocationEnabled: false, // Using our truck instead
           onMapCreated: (c) => _mapController = c,
@@ -231,7 +231,7 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
           initialCameraPosition: CameraPosition(target: _currentPos != null ? LatLng(_currentPos!.latitude, _currentPos!.longitude) : const LatLng(19.076, 72.877), zoom: 17),
           markers: markers,
           polylines: {
-            Polyline(polylineId: const PolylineId('path'), points: polylinePoints, color: const Color(0xFF2979FF), width: 6),
+            Polyline(polylineId: const PolylineId('path'), points: polylinePoints, color: AppColors.primary, width: 6),
           },
           myLocationEnabled: false, 
           onMapCreated: (c) => _mapController = c,
@@ -246,16 +246,16 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: const Offset(0, 5))],
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFF2979FF), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.navigation_rounded, color: Colors.white, size: 28),
+            decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.navigation_rounded, color: AppColors.card, size: 28),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -263,16 +263,16 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(nextTarget.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: Color(0xFF1A237E))),
-                Text('$count TOTAL PICKUPS REMAINING', style: const TextStyle(color: Colors.grey, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
+                Text(nextTarget.toUpperCase(), style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18, color: AppColors.textHeader)),
+                Text('$count TOTAL PICKUPS REMAINING', style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0)),
               ],
             ),
           ),
           const Column(
             crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text('4 min', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Color(0xFF2E7D32))),
-                Text('0.8 km', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                Text('4 min', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: AppColors.success)),
+                Text('0.8 km', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
               ],
           ),
         ],
@@ -287,10 +287,10 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
       maxChildSize: 0.6,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20)],
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20)],
           ),
           child: ListView.builder(
             controller: scrollController,
@@ -314,10 +314,10 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
       maxChildSize: 0.6,
       builder: (context, scrollController) {
         return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 20)],
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 20)],
           ),
           child: ListView.builder(
             controller: scrollController,
@@ -335,7 +335,7 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
   }
 
   Widget _buildSheetHandle() {
-    return Center(child: Container(margin: const EdgeInsets.only(bottom: 20, top: 10), width: 30, height: 4, decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2))));
+    return Center(child: Container(margin: const EdgeInsets.only(bottom: 20, top: 10), width: 30, height: 4, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(2))));
   }
 
   Widget _buildPickupItem(int index, Map<String, dynamic> data) {
@@ -345,21 +345,21 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
         onTap: () => _mapController?.animateCamera(CameraUpdate.newLatLng(LatLng(data['homeLat'], data['homeLng']))),
         child: Container(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: Colors.grey[50], borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.grey[200]!)),
+          decoration: BoxDecoration(color: AppColors.card, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.border)),
           child: Row(
             children: [
-              Container(padding: const EdgeInsets.all(8), decoration: const BoxDecoration(color: Color(0xFFE3F2FD), shape: BoxShape.circle), child: const Icon(Icons.home_work_rounded, color: Color(0xFF2979FF), size: 20)),
+              Container(padding: const EdgeInsets.all(8), decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), shape: BoxShape.circle), child: const Icon(Icons.home_work_rounded, color: AppColors.primary, size: 20)),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(data['name'] ?? 'Resident', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.black87)),
-                    Text(data['address'] ?? 'Tap to view location', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+                    Text(data['name'] ?? 'Resident', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: AppColors.textHeader)),
+                    Text(data['address'] ?? 'Tap to view location', style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                   ],
                 ),
               ),
-              const Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey, size: 14),
+              const Icon(Icons.arrow_forward_ios_rounded, color: AppColors.textMuted, size: 14),
             ],
           ),
         ),
@@ -368,6 +368,6 @@ class _DriverRouteScreenState extends State<DriverRouteScreen> {
   }
 
   Widget _buildEmptyState(String title, String sub) {
-    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.check_circle_rounded, size: 60, color: Color(0xFF2E7D32)), const SizedBox(height: 16), Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)), Text(sub, style: const TextStyle(color: Colors.grey))]));
+    return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.check_circle_rounded, size: 60, color: AppColors.success), const SizedBox(height: 16), Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.textHeader)), Text(sub, style: const TextStyle(color: AppColors.textMuted))]));
   }
 }

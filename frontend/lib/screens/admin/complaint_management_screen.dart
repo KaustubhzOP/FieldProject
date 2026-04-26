@@ -23,8 +23,11 @@ class AdminComplaintManagementScreen extends StatelessWidget {
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: const Text('Complaint Management'),
-          bottom: const TabBar(
-            tabs: [
+          bottom: TabBar(
+            labelColor: AppColors.card,
+            unselectedLabelColor: AppColors.card.withOpacity(0.7),
+            indicatorColor: AppColors.card,
+            tabs: const [
               Tab(text: 'Pending'),
               Tab(text: 'In Progress'),
               Tab(text: 'Resolved'),
@@ -90,9 +93,9 @@ class _AdminWebManagementLayoutState extends State<_AdminWebManagementLayout> {
         SizedBox(
           width: 400,
           child: Container(
-            decoration: const BoxDecoration(border: Border(right: BorderSide(color: Colors.white12))),
+            decoration: const BoxDecoration(border: Border(right: BorderSide(color: AppColors.border))),
             child: filtered.isEmpty 
-              ? const Center(child: Text('No complaints', style: TextStyle(color: Colors.white24)))
+              ? const Center(child: Text('No complaints', style: TextStyle(color: AppColors.textMuted)))
               : ListView.builder(
                   itemCount: filtered.length,
                   itemBuilder: (ctx, i) {
@@ -102,19 +105,19 @@ class _AdminWebManagementLayoutState extends State<_AdminWebManagementLayout> {
                       onTap: () => setState(() => _selectedComplaint = c),
                       child: Container(
                         padding: const EdgeInsets.all(20),
-                        color: isSelected ? AppColors.accent.withOpacity(0.1) : Colors.transparent,
+                        color: isSelected ? AppColors.primary.withOpacity(0.05) : Colors.transparent,
                         child: Row(
                           children: [
                             Expanded(
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(c.id.toUpperCase().substring(0, 8), style: TextStyle(color: isSelected ? AppColors.accent : Colors.white, fontWeight: FontWeight.bold)),
+                                  Text(c.id.toUpperCase().substring(0, 8), style: TextStyle(color: isSelected ? AppColors.primary : AppColors.textHeader, fontWeight: FontWeight.bold)),
                                   Text(c.type, style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                                 ],
                               ),
                             ),
-                            if (isSelected) const Icon(Icons.chevron_right, color: AppColors.accent),
+                            if (isSelected) const Icon(Icons.chevron_right, color: AppColors.primary),
                           ],
                         ),
                       ),
@@ -126,7 +129,7 @@ class _AdminWebManagementLayoutState extends State<_AdminWebManagementLayout> {
         // Detail Area
         Expanded(
           child: _selectedComplaint == null 
-            ? const Center(child: Text('Select a complaint to view details', style: TextStyle(color: Colors.white24)))
+            ? const Center(child: Text('Select a complaint to view details', style: TextStyle(color: AppColors.textMuted)))
             : Padding(
                 padding: const EdgeInsets.all(24.0),
                 child: ClipRRect(
@@ -159,7 +162,7 @@ class _ComplaintTab extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(status == 'resolved' ? Icons.check_circle_outline : Icons.inbox_outlined,
-                color: Colors.white12, size: 64),
+                color: AppColors.border, size: 64),
             const SizedBox(height: 12),
             Text('No ${status.replaceAll('_', ' ')} complaints',
                 style: const TextStyle(color: AppColors.textMuted)),
@@ -168,7 +171,7 @@ class _ComplaintTab extends StatelessWidget {
       );
     }
 
-    final color = status == 'resolved' ? Colors.green : (status == 'in_progress' ? Colors.blue : Colors.orange);
+    final color = status == 'resolved' ? AppColors.success : (status == 'in_progress' ? AppColors.primary : AppColors.warning);
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -189,9 +192,9 @@ class _ComplaintTab extends StatelessWidget {
             margin: const EdgeInsets.only(bottom: 12),
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
-              color: AppColors.secondary,
-              borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              color: AppColors.card,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.border),
             ),
             child: Row(
               children: [
@@ -209,22 +212,22 @@ class _ComplaintTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(c.id,
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textHeader, fontSize: 13)),
                       const SizedBox(height: 3),
                       Text('${c.type}  •  ${c.createdAt.day}/${c.createdAt.month}/${c.createdAt.year}',
                           style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
                       if (hasImg) ...[
                         const SizedBox(height: 4),
                         Row(children: const [
-                          Icon(Icons.image, color: Colors.tealAccent, size: 12),
+                          Icon(Icons.image, color: AppColors.teal, size: 12),
                           SizedBox(width: 4),
-                          Text('Photo attached', style: TextStyle(color: Colors.tealAccent, fontSize: 11)),
+                          Text('Photo attached', style: TextStyle(color: AppColors.teal, fontSize: 11)),
                         ]),
                       ],
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right_rounded, color: Colors.white24, size: 22),
+                const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted, size: 22),
               ],
             ),
           ),
@@ -341,20 +344,20 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(title: const Text('Error')),
-        body: const Center(child: Text('Complaint not found', style: TextStyle(color: Colors.white))),
+        body: const Center(child: Text('Complaint not found', style: TextStyle(color: AppColors.textHeader))),
       );
     }
 
     final c = _complaint!;
-    final statusColor = c.status == 'resolved' ? Colors.green : (c.status == 'in_progress' ? Colors.blue : Colors.orange);
+    final statusColor = c.status == 'resolved' ? AppColors.success : (c.status == 'in_progress' ? AppColors.primary : AppColors.warning);
 
     // Action button logic
     Widget? actionButton;
     if (c.status != 'resolved') {
       actionButton = TextButton.icon(
         onPressed: () => _handleStatusUpdate(context, c),
-        icon: const Icon(Icons.check, color: Colors.white),
-        label: Text(c.status == 'pending' ? 'Start' : 'Resolve', style: const TextStyle(color: Colors.white)),
+        icon: const Icon(Icons.check, color: AppColors.card),
+        label: Text(c.status == 'pending' ? 'Start' : 'Resolve', style: const TextStyle(color: AppColors.card)),
       );
     }
 
@@ -367,7 +370,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
              Row(
                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                children: [
-                 Text(c.type, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+                 Text(c.type, style: const TextStyle(color: AppColors.textHeader, fontSize: 24, fontWeight: FontWeight.bold)),
                  if (actionButton != null) actionButton,
                ],
              ),
@@ -392,7 +395,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
             const Text('Attached Photo', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold, fontSize: 14)),
             const SizedBox(width: 8),
             Text(c.imageUrl != null && c.imageUrl!.isNotEmpty ? '(${(c.imageUrl!.length / 1024).toStringAsFixed(1)} KB stored)' : '(none)',
-                style: const TextStyle(color: Colors.white38, fontSize: 11)),
+                style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
           ]),
           const SizedBox(height: 10),
           _buildImageDisplay(c),
@@ -416,8 +419,8 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.secondary,
-        title: Text(c.status == 'pending' ? 'Mark as In Progress' : 'Mark as Resolved', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.surface,
+        title: Text(c.status == 'pending' ? 'Mark as In Progress' : 'Mark as Resolved', style: const TextStyle(color: AppColors.textHeader, fontWeight: FontWeight.bold)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -426,13 +429,14 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
             TextField(
               controller: remarksController,
               maxLines: 3,
-              style: const TextStyle(color: Colors.white),
+              style: const TextStyle(color: AppColors.textBody),
               decoration: InputDecoration(
                 hintText: 'e.g. Team dispatched. Estimated resolution in 2 hours.',
                 hintStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
                 filled: true,
-                fillColor: AppColors.background,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                fillColor: AppColors.card,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
+                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.border)),
               ),
             ),
           ],
@@ -441,7 +445,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary),
             child: const Text('Confirm'),
           ),
         ],
@@ -468,8 +472,8 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
     if (c.imageUrl != null && c.imageUrl!.isNotEmpty) return _imgError('Stored but could not decode. Status: $_imageStatus');
     return Container(
       height: 80, width: double.infinity,
-      decoration: BoxDecoration(color: Colors.white10, borderRadius: BorderRadius.circular(12)),
-      child: const Center(child: Text('No photo attached', style: TextStyle(color: Colors.white38))),
+      decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.border)),
+      child: const Center(child: Text('No photo attached', style: TextStyle(color: AppColors.textMuted))),
     );
   }
 
@@ -479,10 +483,10 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: const TextStyle(color: AppColors.accent, fontSize: 11, fontWeight: FontWeight.bold)),
+          Text(label, style: const TextStyle(color: AppColors.primary, fontSize: 11, fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           Text(value, style: const TextStyle(color: AppColors.textBody, fontSize: 14)),
-          const Divider(color: Colors.white10, height: 20),
+          const Divider(color: AppColors.border, height: 20),
         ],
       ),
     );
@@ -490,7 +494,7 @@ class _ComplaintDetailScreenState extends State<ComplaintDetailScreen> {
 
   Widget _imgError(String msg) => Container(
     padding: const EdgeInsets.all(14),
-    decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
-    child: Text(msg, style: const TextStyle(color: Colors.orange, fontSize: 12)),
+    decoration: BoxDecoration(color: AppColors.warning.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+    child: Text(msg, style: const TextStyle(color: AppColors.warning, fontSize: 12)),
   );
 }

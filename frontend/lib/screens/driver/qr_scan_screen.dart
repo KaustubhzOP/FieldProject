@@ -69,13 +69,13 @@ class _QrScanScreenState extends State<QrScanScreen> {
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E293B),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        backgroundColor: AppColors.card,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         title: Row(
           children: [
             Icon(success ? Icons.check_circle : Icons.error, color: success ? AppColors.success : AppColors.error),
             const SizedBox(width: 12),
-            Text(title, style: const TextStyle(color: Colors.white)),
+            Text(title, style: const TextStyle(color: AppColors.textHeader)),
           ],
         ),
         content: Text(message, style: const TextStyle(color: AppColors.textBody)),
@@ -86,7 +86,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
               setState(() => _isProcessing = false);
               controller.start();
             },
-            child: const Text('CONTINUE', style: TextStyle(color: AppColors.accent, fontWeight: FontWeight.bold)),
+            child: const Text('CONTINUE', style: TextStyle(color: AppColors.primary, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -107,7 +107,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
   }
 
   Widget _buildBody() {
-    if (_isCheckingPermission) return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+    if (_isCheckingPermission) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     if (!_hasPermission) return _buildNoPermissionUI();
 
     return Stack(
@@ -120,7 +120,7 @@ class _QrScanScreenState extends State<QrScanScreen> {
         if (_isProcessing) 
           Container(
             color: Colors.black54,
-            child: const Center(child: CircularProgressIndicator(color: AppColors.accent)),
+            child: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
           ),
       ],
     );
@@ -133,13 +133,13 @@ class _QrScanScreenState extends State<QrScanScreen> {
         children: [
           const Icon(Icons.camera_alt_outlined, size: 80, color: AppColors.textMuted),
           const SizedBox(height: 24),
-          const Text('Camera Access Required', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+          const Text('Camera Access Required', style: TextStyle(color: AppColors.textHeader, fontSize: 20, fontWeight: FontWeight.bold)),
           const SizedBox(height: 12),
           const Text('Please enable camera permissions to scan QR codes.', style: TextStyle(color: AppColors.textBody)),
           const SizedBox(height: 12),
           ElevatedButton(
             onPressed: _requestPermission,
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.accent),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: AppColors.card),
             child: const Text('Grant Permission'),
           ),
           const SizedBox(height: 12),
@@ -159,9 +159,8 @@ class _QrScanScreenState extends State<QrScanScreen> {
           child: Container(
             width: 260, height: 260,
             decoration: BoxDecoration(
-              border: Border.all(color: AppColors.accent, width: 2),
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [BoxShadow(color: AppColors.accent.withOpacity(0.2), blurRadius: 40, spreadRadius: 5)],
+              border: Border.all(color: AppColors.primary, width: 2),
+              borderRadius: BorderRadius.circular(8),
             ),
           ),
         ),
@@ -171,11 +170,11 @@ class _QrScanScreenState extends State<QrScanScreen> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.7),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white10),
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border),
               ),
-              child: const Text('Center the Bin QR code to log collection', style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500)),
+              child: const Text('Center the Bin QR code to log collection', style: TextStyle(color: AppColors.textHeader, fontSize: 13, fontWeight: FontWeight.w500)),
             ),
           ),
         ),

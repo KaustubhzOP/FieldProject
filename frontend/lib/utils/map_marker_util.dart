@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import '../config/app_colors.dart';
 
 class MapMarkerUtil {
   /// Converts a Material Icon into a circular BitmapDescriptor for Google Maps
@@ -8,16 +9,17 @@ class MapMarkerUtil {
     required IconData icon,
     required Color color,
     required double size,
-    Color iconColor = Colors.white,
+    Color? iconColor,
     double borderSize = 4.0,
   }) async {
+    iconColor ??= AppColors.card;
     final ui.PictureRecorder pictureRecorder = ui.PictureRecorder();
     final Canvas canvas = Canvas(pictureRecorder);
     final double radius = size / 2;
 
     // 1. Draw Outer Border Circle (White)
     final Paint borderPaint = Paint()
-      ..color = Colors.white
+      ..color = AppColors.card
       ..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(radius, radius), radius, borderPaint);
 

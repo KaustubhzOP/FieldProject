@@ -1,8 +1,8 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/location_broadcast_service.dart';
+import '../../config/app_colors.dart';
 
 class DriverDashboardScreen extends StatefulWidget {
   const DriverDashboardScreen({super.key});
@@ -61,7 +61,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+          SnackBar(content: Text('Error: $e'), backgroundColor: AppColors.error),
         );
       }
     } finally {
@@ -84,7 +84,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
               child: ScaleTransition(
                 scale: _pulseAnimation,
                 child: const Icon(Icons.broadcast_on_personal,
-                    color: Colors.greenAccent),
+                    color: AppColors.success),
               ),
             ),
         ],
@@ -96,9 +96,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
             const SizedBox(height: 12),
 
             // ── DUTY TOGGLE CARD ──
-            Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            Container(
+              decoration: BoxDecoration(
+                color: AppColors.card,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.border),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
@@ -110,19 +113,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                         height: 80,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _isOnDuty ? Colors.green.shade100 : Colors.red.shade100,
-                          boxShadow: [
-                            BoxShadow(
-                              color: (_isOnDuty ? Colors.green : Colors.red).withOpacity(0.3),
-                              blurRadius: 20,
-                              spreadRadius: 4,
-                            )
-                          ],
+                          color: _isOnDuty ? AppColors.success.withOpacity(0.1) : AppColors.error.withOpacity(0.1),
                         ),
                         child: Icon(
                           _isOnDuty ? Icons.wifi_tethering : Icons.wifi_tethering_off,
                           size: 44,
-                          color: _isOnDuty ? Colors.green : Colors.red,
+                          color: _isOnDuty ? AppColors.success : AppColors.error,
                         ),
                       ),
                     ),
@@ -132,12 +128,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
-                        color: _isOnDuty ? Colors.green : Colors.red,
+                        color: _isOnDuty ? AppColors.success : AppColors.error,
                       ),
                     ),
                     const SizedBox(height: 6),
                     Text(_statusMessage,
-                        style: const TextStyle(color: Colors.grey, fontSize: 13),
+                        style: const TextStyle(color: AppColors.textMuted, fontSize: 13),
                         textAlign: TextAlign.center),
                     const SizedBox(height: 20),
                     SizedBox(
@@ -149,16 +145,16 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                                 width: 18,
                                 height: 18,
                                 child: CircularProgressIndicator(
-                                    strokeWidth: 2, color: Colors.white))
+                                    strokeWidth: 2, color: AppColors.card))
                             : Icon(_isOnDuty ? Icons.stop_circle : Icons.play_circle),
                         label: Text(_isOnDuty ? 'Stop Duty' : 'Start Duty',
                             style: const TextStyle(fontSize: 16)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: _isOnDuty ? Colors.red : Colors.green,
-                          foregroundColor: Colors.white,
+                          backgroundColor: _isOnDuty ? AppColors.error : AppColors.success,
+                          foregroundColor: AppColors.card,
                           padding: const EdgeInsets.all(16),
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
+                              borderRadius: BorderRadius.circular(8)),
                         ),
                       ),
                     ),
@@ -171,21 +167,24 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
 
             // ── BROADCAST STATUS CARD ──
             if (_isOnDuty)
-              Card(
-                color: Colors.green.shade50,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              Container(
+                decoration: BoxDecoration(
+                  color: AppColors.success.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.success.withOpacity(0.2)),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.location_on, color: Colors.green),
+                          const Icon(Icons.location_on, color: AppColors.success),
                           const SizedBox(width: 8),
                           const Expanded(
                             child: Text(
                               'GPS location updating every 10m movement',
-                              style: TextStyle(fontSize: 13, color: Colors.green),
+                              style: TextStyle(fontSize: 13, color: AppColors.success),
                             ),
                           ),
                         ],
@@ -193,12 +192,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
                       const SizedBox(height: 8),
                       Row(
                         children: [
-                          const Icon(Icons.bluetooth, color: Colors.blue),
+                          const Icon(Icons.bluetooth, color: AppColors.primary),
                           const SizedBox(width: 8),
                           const Expanded(
                             child: Text(
                               'BLE beacon active — residents can detect your truck',
-                              style: TextStyle(fontSize: 13, color: Colors.blue),
+                              style: TextStyle(fontSize: 13, color: AppColors.primary),
                             ),
                           ),
                         ],
@@ -213,17 +212,17 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
             // ── STATS CARDS ──
             Row(
               children: [
-                Expanded(child: _buildStatCard('Collections', '5', Icons.check_circle, Colors.green)),
+                Expanded(child: _buildStatCard('Collections', '5', Icons.check_circle, AppColors.success)),
                 const SizedBox(width: 8),
-                Expanded(child: _buildStatCard('Pending', '3', Icons.pending, Colors.orange)),
+                Expanded(child: _buildStatCard('Pending', '3', Icons.pending, AppColors.warning)),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: _buildStatCard('Distance', '12 km', Icons.location_on, Colors.blue)),
+                Expanded(child: _buildStatCard('Distance', '12 km', Icons.location_on, AppColors.primary)),
                 const SizedBox(width: 8),
-                Expanded(child: _buildStatCard('Time', '2.5 hrs', Icons.access_time, Colors.purple)),
+                Expanded(child: _buildStatCard('Time', '2.5 hrs', Icons.access_time, AppColors.accent)),
               ],
             ),
           ],
@@ -233,9 +232,12 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
   }
 
   Widget _buildStatCard(String label, String value, IconData icon, Color color) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 14),
         child: Column(
@@ -253,7 +255,7 @@ class _DriverDashboardScreenState extends State<DriverDashboardScreen>
             ),
             const SizedBox(height: 4),
             Text(label,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
+                style: const TextStyle(fontSize: 12, color: AppColors.textMuted),
                 textAlign: TextAlign.center),
           ],
         ),

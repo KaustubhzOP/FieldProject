@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'config/app_theme.dart';
+import 'config/app_colors.dart';
 import 'providers/auth_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/complaint_provider.dart';
@@ -53,7 +54,7 @@ class AdminWebPortalApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.dark, // Office dashboards often look better in dark mode
+            themeMode: ThemeMode.light, // Enforce light theme for municipal platform
             home: const WebSplashScreen(),
           );
         },
@@ -109,21 +110,20 @@ class _WebSplashScreenState extends State<WebSplashScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.lock_person_rounded, size: 80, color: Colors.orangeAccent),
+                Icon(Icons.lock_person_rounded, size: 80, color: AppColors.warning),
                 const SizedBox(height: 20),
-                Text(msg, style: const TextStyle(fontSize: 18, color: Colors.white)),
+                Text(msg, style: const TextStyle(fontSize: 18, color: AppColors.textHeader, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 20),
                 ElevatedButton(
                   onPressed: () => AdminWebPortalApp.navigatorKey.currentState?.pushReplacement(
                     MaterialPageRoute(builder: (_) => const LoginScreen())
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blueAccent,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.card,
                     minimumSize: const Size(200, 50),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('Back to Login', style: TextStyle(fontWeight: FontWeight.bold)),
+                  child: const Text('Back to Login'),
                 ),
               ],
             ),
@@ -135,16 +135,16 @@ class _WebSplashScreenState extends State<WebSplashScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.admin_panel_settings_rounded, size: 100, color: Colors.blueAccent),
+            Icon(Icons.admin_panel_settings_rounded, size: 100, color: AppColors.primary),
             SizedBox(height: 24),
-            Text('BMC ADMIN PORTAL', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 2)),
+            Text('BMC ADMIN PORTAL', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppColors.textHeader, letterSpacing: 2)),
             SizedBox(height: 48),
-            CircularProgressIndicator(color: Colors.blueAccent),
+            CircularProgressIndicator(color: AppColors.primary),
           ],
         ),
       ),

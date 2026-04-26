@@ -70,7 +70,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (success) {
         setState(() => _isEditing = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Profile updated successfully'), backgroundColor: Colors.teal),
+          const SnackBar(content: Text('Profile updated successfully'), backgroundColor: AppColors.success),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -87,25 +87,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          _buildNebulaHeader(context),
-          SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+      appBar: AppBar(
+        title: const Text('My Profile', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 0.5)),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.card,
+        elevation: 0,
+        actions: [
+          _isEditing 
+            ? IconButton(icon: const Icon(Icons.check_rounded), onPressed: _handleSave)
+            : IconButton(icon: const Icon(Icons.edit_note_rounded), onPressed: _toggleEdit),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // Header with Avatar
+            Stack(
+              alignment: Alignment.topCenter,
+              children: [
+                Container(
+                  height: 100,
+                  decoration: const BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.only(
+                      bottomLeft: Radius.circular(32),
+                      bottomRight: Radius.circular(32),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(top: 20),
+                  child: _buildProfileAvatar(context, user),
+                ),
+              ],
+            ),
+            
+            const SizedBox(height: 20),
+            
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Form(
                 key: _formKey,
                 child: Column(
                   children: [
-                    const SizedBox(height: 40),
-                    _buildProfileAvatar(context, user),
-                    const SizedBox(height: 40),
-                    _buildGlassSection(
+                    _buildProfileSection(
                       title: _isEditing ? 'EDITING PROFILE' : 'OPERATIONAL PROFILE',
-                      action: IconButton(
-                        icon: Icon(_isEditing ? Icons.close_rounded : Icons.edit_note_rounded, color: Colors.white70),
-                        onPressed: _toggleEdit,
-                      ),
                       children: [
                         _buildField(Icons.alternate_email_rounded, 'Email Address', user?.email ?? '', enabled: false),
                         _buildEditableField(
@@ -140,26 +167,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
-                    if (_isEditing)
-                      _buildSaveButton(authProvider.isLoading)
-                    else ...[
-                      _buildGlassSection(
-                        title: 'DEMO CONTROLS',
+                    const SizedBox(height: 20),
+                    if (!_isEditing) ...[
+                      _buildProfileSection(
+                        title: 'ACCOUNT ACTIONS',
                         children: [
                           _buildResetLocationTile(context, user?.id ?? ''),
                         ],
                       ),
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 32),
                       _buildSignOutButton(context, authProvider),
+                    ] else ...[
+                      const SizedBox(height: 20),
+                      _buildSaveButton(authProvider.isLoading),
+                      const SizedBox(height: 12),
+                      TextButton(
+                        onPressed: _toggleEdit,
+                        child: Text('CANCEL CHANGES', style: TextStyle(color: AppColors.textMuted, fontWeight: FontWeight.bold, fontSize: 13)),
+                      ),
                     ],
                     const SizedBox(height: 40),
                   ],
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -169,11 +202,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       leading: Container(
         padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(color: Colors.white.withOpacity(0.05), borderRadius: BorderRadius.circular(12)),
-        child: Icon(icon, color: Colors.white24, size: 18),
+        decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+        child: Icon(icon, color: AppColors.primary, size: 18),
       ),
       title: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 10, fontWeight: FontWeight.w600)),
-      subtitle: Text(value, style: const TextStyle(color: Colors.white38, fontSize: 15)),
+      subtitle: Text(value, style: const TextStyle(color: AppColors.textBody, fontSize: 15)),
     );
   }
 
@@ -188,11 +221,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         leading: Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
-          child: Icon(icon, color: AppColors.accent, size: 22),
+          decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: AppColors.primary, size: 22),
         ),
         title: Text(label, style: const TextStyle(color: AppColors.textMuted, fontSize: 12, fontWeight: FontWeight.w500)),
-        subtitle: Text(controller.text.isEmpty ? 'Not set' : controller.text, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        subtitle: Text(controller.text.isEmpty ? 'Not set' : controller.text, style: const TextStyle(color: AppColors.textHeader, fontSize: 16, fontWeight: FontWeight.w600)),
       );
     }
 
@@ -202,14 +235,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
         controller: controller,
         validator: validator,
         keyboardType: keyboardType,
-        style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+        style: const TextStyle(color: AppColors.textHeader, fontSize: 16, fontWeight: FontWeight.w600),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: AppColors.accent, size: 20),
+          prefixIcon: Icon(icon, color: AppColors.primary, size: 20),
           labelText: label,
           hintText: hint,
           labelStyle: const TextStyle(color: AppColors.textMuted, fontSize: 12),
-          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.1))),
-          focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.accent)),
+          enabledBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.border)),
+          focusedBorder: const UnderlineInputBorder(borderSide: BorderSide(color: AppColors.primary)),
         ),
       ),
     );
@@ -221,42 +254,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: ElevatedButton(
         onPressed: isLoading ? null : _handleSave,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.accent,
-          foregroundColor: Colors.white,
+          backgroundColor: AppColors.primary,
+          foregroundColor: AppColors.card,
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 10,
-          shadowColor: AppColors.accent.withOpacity(0.5),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          elevation: 2,
         ),
         child: isLoading 
-          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+          ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: AppColors.card, strokeWidth: 2))
           : const Text('SAVE CHANGES', style: TextStyle(fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-      ),
-    );
-  }
-
-  Widget _buildNebulaHeader(BuildContext context) {
-    return Container(
-      height: 300,
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [AppColors.accent, Color(0xFF0F172A), AppColors.background],
-          stops: [0.0, 0.6, 1.0],
-        ),
-      ),
-      child: Stack(
-        children: [
-          Positioned(
-            top: -50, right: -50,
-            child: ImageFiltered(
-              imageFilter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-              child: Container(width: 200, height: 200, decoration: BoxDecoration(shape: BoxShape.circle, color: AppColors.teal.withOpacity(0.15))),
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -265,78 +271,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final initials = user?.name.isNotEmpty == true ? user!.name.substring(0, 1).toUpperCase() : 'U';
     return Column(
       children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: 120, height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
-                boxShadow: [BoxShadow(color: AppColors.accent.withOpacity(0.3), blurRadius: 40, spreadRadius: 5)],
+        Container(
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
               ),
-            ),
-            CircleAvatar(
-              radius: 54,
-              backgroundColor: AppColors.secondary,
-              child: Text(initials, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: -1)),
-            ),
-          ],
+            ],
+          ),
+          child: CircleAvatar(
+            radius: 54,
+            backgroundColor: AppColors.primary,
+            child: Text(initials, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900, color: AppColors.card, letterSpacing: -1)),
+          ),
         ),
-        const SizedBox(height: 20),
-        Text(user?.name ?? 'Account User', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
+        const SizedBox(height: 16),
+        Text(user?.name ?? 'Account User', style: const TextStyle(color: AppColors.textHeader, fontSize: 24, fontWeight: FontWeight.bold, letterSpacing: -0.5)),
         const SizedBox(height: 6),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(color: AppColors.accent.withOpacity(0.1), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.accent.withOpacity(0.2))),
-          child: const Text('RESIDENT ACCOUNT', style: TextStyle(color: AppColors.accent, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
+          decoration: BoxDecoration(
+            color: AppColors.teal.withOpacity(0.1), 
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: AppColors.teal.withOpacity(0.2)),
+          ),
+          child: const Text('RESIDENT ACCOUNT', style: TextStyle(color: AppColors.teal, fontSize: 10, fontWeight: FontWeight.w800, letterSpacing: 1.5)),
         ),
       ],
     );
   }
 
-  Widget _buildGlassSection({required String title, required List<Widget> children, Widget? action}) {
+  Widget _buildProfileSection({required String title, required List<Widget> children}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 8, bottom: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(title, style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
-              if (action != null) action,
-            ],
-          ),
+          padding: const EdgeInsets.only(left: 4, bottom: 8),
+          child: Text(title, style: const TextStyle(color: AppColors.textMuted, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.5)),
         ),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.03),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withOpacity(0.08), width: 1.5),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.card,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
               ),
-              child: Column(children: children),
-            ),
+            ],
+            border: Border.all(color: AppColors.border, width: 1),
           ),
+          child: Column(children: _addDividers(children)),
         ),
       ],
     );
   }
 
+  List<Widget> _addDividers(List<Widget> items) {
+    List<Widget> result = [];
+    for (int i = 0; i < items.length; i++) {
+      result.add(items[i]);
+      if (i < items.length - 1) {
+        result.add(const Divider(height: 1, indent: 64, endIndent: 20, color: AppColors.border));
+      }
+    }
+    return result;
+  }
+
   Widget _buildResetLocationTile(BuildContext context, String userId) {
     return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       leading: Container(
         padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(color: Colors.orange.withOpacity(0.1), borderRadius: BorderRadius.circular(15)),
-        child: const Icon(Icons.restart_alt_rounded, color: Colors.orange, size: 22),
+        decoration: BoxDecoration(color: AppColors.warning.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+        child: const Icon(Icons.location_disabled_rounded, color: AppColors.warning, size: 24),
       ),
-      title: const Text('Reset Home Location', style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600)),
-      subtitle: const Text('Clear location data for testing', style: TextStyle(color: AppColors.textMuted, fontSize: 11)),
+      title: const Text('Reset Home Location', style: TextStyle(color: AppColors.textHeader, fontSize: 14, fontWeight: FontWeight.w600)),
+      subtitle: const Text('Clear verified location data', style: TextStyle(color: AppColors.textMuted, fontSize: 12)),
+      trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
       onTap: () => _resetLocation(context, userId),
     );
   }
@@ -345,8 +363,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
      final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.secondary,
-        title: const Text('Reset Location?', style: TextStyle(color: Colors.white)),
+        backgroundColor: AppColors.card,
+        title: const Text('Reset Location?', style: TextStyle(color: AppColors.textHeader)),
         content: const Text('This will clear your coordinates for testing.', style: TextStyle(color: AppColors.textBody)),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('CANCEL')),
@@ -371,7 +389,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: AppColors.error, width: 1.5),
           padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
         child: const Text('TERMINATE SESSION', style: TextStyle(color: AppColors.error, fontWeight: FontWeight.w900, fontSize: 13, letterSpacing: 1.5)),
       ),

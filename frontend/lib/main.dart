@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/foundation.dart';
 import 'config/app_theme.dart';
+import 'config/app_colors.dart';
 import 'providers/auth_provider.dart';
 import 'providers/location_provider.dart';
 import 'providers/complaint_provider.dart';
@@ -35,8 +36,8 @@ void main() async {
     await Firebase.initializeApp();
   }
 
-  // Simulation disabled per requirement to rely purely on native device GPS
-  // await FleetSimulationService().initialize();
+  // Simulation enabled for proximity testing
+  await FleetSimulationService().initialize();
   
   runApp(const SmartWasteApp());
 }
@@ -64,7 +65,7 @@ class SmartWasteApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
-            themeMode: ThemeMode.system,
+            themeMode: ThemeMode.light,
             home: const SplashScreen(),
           );
         },
@@ -130,15 +131,8 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Theme.of(context).primaryColor,
-              Theme.of(context).colorScheme.secondary,
-            ],
-          ),
+        decoration: const BoxDecoration(
+          color: AppColors.primary,
         ),
         child: Center(
           child: Column(
@@ -147,7 +141,7 @@ class _SplashScreenState extends State<SplashScreen> {
               Icon(
                 Icons.recycling,
                 size: 100,
-                color: Colors.white,
+                color: AppColors.card,
               ),
               const SizedBox(height: 24),
               const Text(
@@ -155,20 +149,20 @@ class _SplashScreenState extends State<SplashScreen> {
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
-                  color: Colors.white,
+                  color: AppColors.card,
                 ),
               ),
               const SizedBox(height: 8),
-              const Text(
+              Text(
                 'BMC Waste Management System',
                 style: TextStyle(
                   fontSize: 16,
-                  color: Colors.white70,
+                  color: AppColors.card.withOpacity(0.7),
                 ),
               ),
               const SizedBox(height: 48),
               const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.card),
               ),
             ],
           ),

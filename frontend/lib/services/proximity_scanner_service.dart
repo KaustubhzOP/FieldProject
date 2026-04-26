@@ -4,6 +4,7 @@ import 'package:flutter_blue_plus/flutter_blue_plus.dart';
 import 'package:geolocator/geolocator.dart';
 
 import 'fcm_service.dart';
+import 'notification_service.dart';
 
 // Smart truck BLE Service UUID - what residents scan for
 const String smartBinServiceUuid = '0000FFE0-0000-1000-8000-00805F9B34FB';
@@ -19,12 +20,12 @@ class ProximityScannerService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   StreamSubscription? _bleScanSubscription;
-  StreamSubscription? _firestoreSubscription;
-  bool _notifiedThisSession = false;
   bool _isActive = false;
   String _residentId = '';
+  // Track which levels have been notified per truck (TruckID -> Set of Milestones)
+  final Map<String, Set<int>> _notifiedMilestones = {};
 
-  static const double proximityRadius = 50.0; // meters
+  static const double proximityRadius = 400.0; // meters (Expanded for testing)
 
   /// Call this after the resident logs in.
   Future<void> startMonitoring({
@@ -32,33 +33,36 @@ class ProximityScannerService {
     required double residentLng,
     required String residentId,
   }) async {
-    if (_isActive) return;
-    _isActive = true;
+    if (_residentId == residentId && _isActive) return;
+    
     _residentId = residentId;
-    _notifiedThisSession = false;
+    await stopMonitoring();
+    _isActive = true;
+    _notifiedMilestones.clear();
 
-    _startBleScan();
+    // BLE disabled — GPS/Firestore handles all proximity alerts
     _startGpsFallback(residentLat, residentLng);
   }
 
-  void _startBleScan() {
+  Future<void> _startBleScan() async {
     try {
-      FlutterBluePlus.startScan(
+      await FlutterBluePlus.startScan(
         withServices: [Guid(smartBinServiceUuid)],
         timeout: const Duration(minutes: 5),
       );
-
       _bleScanSubscription = FlutterBluePlus.scanResults.listen((results) {
         for (ScanResult r in results) {
-          if (r.rssi > -80 && !_notifiedThisSession) {
-            _triggerFcmArrivalAlert();
+          if (r.rssi > -80) {
+            _checkMilestones('ble_truck', 50.0);
           }
         }
       });
-    } catch (_) {
-      // BLE unavailable — GPS fallback covers it
+    } on Exception catch (_) {
+      // BLE unavailable (Bluetooth off, no permission, etc.) — GPS fallback handles everything
     }
   }
+
+  StreamSubscription? _firestoreSubscription;
 
   void _startGpsFallback(double residentLat, double residentLng) {
     _firestoreSubscription = _firestore
@@ -68,6 +72,7 @@ class ProximityScannerService {
         .listen((snapshot) {
       for (var doc in snapshot.docs) {
         final data = doc.data();
+        final String truckId = doc.id;
         final location = data['liveLocation'];
         if (location == null) continue;
 
@@ -79,22 +84,40 @@ class ProximityScannerService {
           driverLat, driverLng,
         );
 
-        if (distance <= proximityRadius && !_notifiedThisSession) {
-          _triggerFcmArrivalAlert();
-        }
+        _checkMilestones(truckId, distance);
       }
     });
   }
 
-  /// Fires an FCM push to this resident's registered device token via FcmService.
-  void _triggerFcmArrivalAlert() {
-    _notifiedThisSession = true;
-    FcmService().sendArrivalAlert(_residentId);
+  void _checkMilestones(String truckId, double distance) {
+    if (!_notifiedMilestones.containsKey(truckId)) {
+      _notifiedMilestones[truckId] = {};
+    }
 
-    // Reset after 30 minutes — allows notification on the next truck visit
-    Future.delayed(const Duration(minutes: 30), () {
-      _notifiedThisSession = false;
-    });
+    final milestones = [400, 300, 200, 100];
+    for (int milestone in milestones) {
+      if (distance <= milestone && !_notifiedMilestones[truckId]!.contains(milestone)) {
+        _notifiedMilestones[truckId]!.add(milestone);
+        _triggerMilestoneAlert(milestone);
+        break; // Only trigger one milestone per check
+      }
+    }
+
+    // Reset milestones if truck moves far away again (e.g. > 600m)
+    if (distance > 600) {
+      _notifiedMilestones[truckId]?.clear();
+    }
+  }
+
+  void _triggerMilestoneAlert(int distance) {
+    String message = 'The truck is $distance meters away from your house.';
+    if (distance == 100) message = 'Truck is almost here! ($distance meters away)';
+    
+    NotificationService().showLocalNotification(
+      'Truck Approaching', 
+      message,
+      {'type': 'arrival', 'distance': distance.toString()}
+    );
   }
 
   Future<void> stopMonitoring() async {

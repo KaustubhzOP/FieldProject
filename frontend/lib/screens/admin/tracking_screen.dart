@@ -44,12 +44,12 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> with SingleTi
   Future<void> _loadIcons() async {
     final truck = await MapMarkerUtil.createCustomMarker(
       icon: Icons.local_shipping_rounded,
-      color: AppColors.accent,
+      color: AppColors.primary,
       size: 100,
     );
     final home = await MapMarkerUtil.createCustomMarker(
       icon: Icons.home_rounded,
-      color: Colors.redAccent,
+      color: AppColors.error,
       size: 100,
     );
     if (mounted) {
@@ -187,7 +187,6 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> with SingleTi
           GoogleMap(
             initialCameraPosition: const CameraPosition(target: LatLng(19.0760, 72.8777), zoom: 12),
             markers: _buildMarkers(),
-            style: MapStyles.darkStyle,
             zoomControlsEnabled: false,
             onMapCreated: (c) => _mapController = c,
           ),
@@ -204,8 +203,8 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> with SingleTi
     return IconButton(
       icon: Container(
         padding: const EdgeInsets.all(6),
-        decoration: BoxDecoration(color: active ? AppColors.accent.withOpacity(0.2) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
-        child: Icon(icon, color: active ? AppColors.accent : AppColors.textMuted, size: 20),
+        decoration: BoxDecoration(color: active ? AppColors.primary.withOpacity(0.1) : Colors.transparent, borderRadius: BorderRadius.circular(8)),
+        child: Icon(icon, color: active ? AppColors.primary : AppColors.textMuted, size: 20),
       ),
       onPressed: tap,
     );
@@ -229,31 +228,34 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> with SingleTi
             return Padding(
               padding: const EdgeInsets.only(right: 12),
               child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                  child: InkWell(
-                    onTap: () {
-                      if (location != null) {
-                        _mapController?.animateCamera(CameraUpdate.newLatLng(LatLng(location['lat'], location['lng'])));
-                      }
-                    },
-                    child: Container(
-                      width: 160,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.8), borderRadius: BorderRadius.circular(20), border: Border.all(color: Colors.white10)),
+                borderRadius: BorderRadius.circular(8),
+                child: InkWell(
+                  onTap: () {
+                    if (location != null) {
+                      _mapController?.animateCamera(CameraUpdate.newLatLng(LatLng(location['lat'], location['lng'])));
+                    }
+                  },
+                  child: Container(
+                    width: 160,
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: AppColors.card, 
+                      borderRadius: BorderRadius.circular(8), 
+                      border: Border.all(color: AppColors.border),
+                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10)],
+                    ),
                       child: Row(
                         children: [
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis),
+                              Text(name, style: const TextStyle(color: AppColors.textHeader, fontWeight: FontWeight.bold, fontSize: 13), overflow: TextOverflow.ellipsis),
                               Text(truck, style: TextStyle(color: AppColors.textMuted.withOpacity(0.7), fontSize: 10)),
                               const SizedBox(height: 4),
                               Row(
                                 children: [
-                                  const Icon(Icons.speed_rounded, color: AppColors.accent, size: 12),
+                                  const Icon(Icons.speed_rounded, color: AppColors.primary, size: 12),
                                   const SizedBox(width: 4),
                                   Text('${(location?['speed'] ?? 0).toStringAsFixed(0)} km/h', style: const TextStyle(color: AppColors.textMuted, fontSize: 11)),
                                 ],
@@ -261,14 +263,13 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> with SingleTi
                             ],
                           ),
                           const Spacer(),
-                          const Icon(Icons.radar_rounded, color: AppColors.accent, size: 18),
+                          const Icon(Icons.radar_rounded, color: AppColors.primary, size: 18),
                         ],
                       ),
                     ),
                   ),
                 ),
-              ),
-            );
+              );
           },
         ),
       ),
@@ -293,11 +294,11 @@ class _AdminTrackingScreenState extends State<AdminTrackingScreen> with SingleTi
       color: Colors.transparent,
       child: InkWell(
         onTap: tap,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(color: AppColors.secondary.withOpacity(0.8), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white10)),
-          child: Icon(icon, color: Colors.white, size: 20),
+          decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.border)),
+          child: Icon(icon, color: AppColors.primary, size: 20),
         ),
       ),
     );

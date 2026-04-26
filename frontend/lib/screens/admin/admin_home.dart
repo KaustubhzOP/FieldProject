@@ -53,20 +53,23 @@ class _AdminHomeState extends State<AdminHome> {
       body: IndexedStack(index: _selectedIndex, children: screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
-          color: AppColors.secondary,
+          color: AppColors.card,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.3), blurRadius: 15)],
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 15, offset: const Offset(0, -5))],
+          border: const Border(top: BorderSide(color: AppColors.border, width: 0.5)),
         ),
         child: ClipRRect(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
           child: BottomNavigationBar(
             currentIndex: _selectedIndex,
             onTap: _onTabSelected,
-            backgroundColor: AppColors.secondary,
-            selectedItemColor: AppColors.accent,
+            backgroundColor: AppColors.card,
+            selectedItemColor: AppColors.primary,
             unselectedItemColor: AppColors.textMuted,
             showSelectedLabels: true,
-            showUnselectedLabels: false,
+            showUnselectedLabels: true,
+            selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11),
+            unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500, fontSize: 10),
             type: BottomNavigationBarType.fixed,
             elevation: 0,
             items: const [

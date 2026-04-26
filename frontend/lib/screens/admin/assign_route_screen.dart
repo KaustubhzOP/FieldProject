@@ -24,19 +24,19 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
       'name': 'Bandra West Cycle', 'id': 'route_bandra', 'ward': 'Ward 1',
       'description': 'Main market and residential loop',
       'path': [{'lat': 19.0596, 'lng': 72.8295}, {'lat': 19.0620, 'lng': 72.8350}, {'lat': 19.0650, 'lng': 72.8300}, {'lat': 19.0596, 'lng': 72.8295}],
-      'color': Colors.blueAccent,
+      'color': AppColors.primary,
     },
     {
       'name': 'Dharavi Sector 4', 'id': 'route_dharavi', 'ward': 'Ward 2',
       'description': 'High density waste collection',
       'path': [{'lat': 19.0400, 'lng': 72.8500}, {'lat': 19.0450, 'lng': 72.8550}, {'lat': 19.0480, 'lng': 72.8520}, {'lat': 19.0400, 'lng': 72.8500}],
-      'color': Colors.orangeAccent,
+      'color': AppColors.warning,
     },
     {
       'name': 'Kurla North Line', 'id': 'route_kurla', 'ward': 'Ward 3',
       'description': 'Industrial area sweep',
       'path': [{'lat': 19.0760, 'lng': 72.8777}, {'lat': 19.0800, 'lng': 72.8850}, {'lat': 19.0850, 'lng': 72.8820}, {'lat': 19.0760, 'lng': 72.8777}],
-      'color': Colors.greenAccent,
+      'color': AppColors.teal,
     },
   ];
 
@@ -129,18 +129,17 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
                   width: 110,
                   margin: const EdgeInsets.only(right: 15),
                   decoration: BoxDecoration(
-                    color: isSelected ? AppColors.accent : AppColors.secondary,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isSelected ? Colors.white24 : Colors.transparent),
-                    boxShadow: isSelected ? [BoxShadow(color: AppColors.accent.withOpacity(0.3), blurRadius: 10)] : null,
+                    color: isSelected ? AppColors.primary : AppColors.card,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: isSelected ? AppColors.primary : AppColors.border),
                   ),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.local_shipping_rounded, color: isSelected ? Colors.white : AppColors.textMuted, size: 24),
-                      const SizedBox(height: 8),
-                      Text(name, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : Colors.white70), maxLines: 1, overflow: TextOverflow.ellipsis),
-                      Text(truck, style: TextStyle(fontSize: 9, color: isSelected ? Colors.white70 : AppColors.textMuted)),
+                      Icon(Icons.local_shipping_rounded, color: isSelected ? AppColors.card : AppColors.textMuted, size: 24),
+                      const SizedBox(height: 6),
+                      Text(name, textAlign: TextAlign.center, style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: isSelected ? AppColors.card : AppColors.textHeader), maxLines: 1, overflow: TextOverflow.ellipsis),
+                      Text(truck, style: TextStyle(fontSize: 9, color: isSelected ? AppColors.card.withOpacity(0.7) : AppColors.textMuted)),
                     ],
                   ),
                 ),
@@ -164,33 +163,33 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
             padding: const EdgeInsets.only(bottom: 16),
             child: InkWell(
               onTap: () => setState(() => _selectedRoute = route),
-              borderRadius: BorderRadius.circular(25),
+              borderRadius: BorderRadius.circular(8),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 300),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary,
-                  borderRadius: BorderRadius.circular(25),
-                  border: Border.all(color: isSelected ? AppColors.accent : Colors.white.withOpacity(0.05), width: 1.5),
+                  color: AppColors.card,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: isSelected ? AppColors.primary : AppColors.border, width: 1.5),
                 ),
                 child: Column(
                   children: [
                     ListTile(
                       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: (route['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(12)), child: Icon(Icons.map_rounded, color: route['color'])),
-                      title: Text(route['name'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      leading: Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: (route['color'] as Color).withOpacity(0.1), borderRadius: BorderRadius.circular(8)), child: Icon(Icons.map_rounded, color: route['color'])),
+                      title: Text(route['name'], style: const TextStyle(color: AppColors.textHeader, fontWeight: FontWeight.bold)),
                       subtitle: Text(route['description'], style: const TextStyle(color: AppColors.textMuted, fontSize: 12)),
-                      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppColors.accent) : const Icon(Icons.circle_outlined, color: Colors.white10),
+                      trailing: isSelected ? const Icon(Icons.check_circle_rounded, color: AppColors.primary) : const Icon(Icons.circle_outlined, color: AppColors.border),
                     ),
                     if (isSelected) 
                       Container(
                         height: 180, width: double.infinity,
                         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                         child: ClipRRect(
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(8),
                           child: GoogleMap(
                             initialCameraPosition: CameraPosition(target: LatLng(route['path'][0]['lat'], route['path'][0]['lng']), zoom: 13),
                             polylines: {Polyline(polylineId: const PolylineId('preview'), points: (route['path'] as List).map((p) => LatLng(p['lat'], p['lng'])).toList(), color: route['color'], width: 4)},
-                            style: MapStyles.darkStyle, liteModeEnabled: true, zoomControlsEnabled: false,
+                            liteModeEnabled: true, zoomControlsEnabled: false,
                           ),
                         ),
                       ),
@@ -208,9 +207,9 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 30),
       decoration: BoxDecoration(
-        color: AppColors.secondary, 
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(30)), 
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.4), blurRadius: 20)]
+        color: AppColors.surface, 
+        border: const Border(top: BorderSide(color: AppColors.border)),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -5))]
       ),
       child: SafeArea(
         child: Column(
@@ -218,7 +217,7 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
           children: [
             Row(
               children: [
-                const Icon(Icons.info_outline_rounded, color: AppColors.accent, size: 20),
+                const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 20),
                 const SizedBox(width: 12),
                 Expanded(child: Text('Confirming ${_selectedRoute!['name']} for Operator $_selectedDriverName', style: const TextStyle(color: AppColors.textBody, fontSize: 13))),
               ],
@@ -233,7 +232,7 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                 ),
                 child: _isSubmitting 
-                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) 
+                  ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.card))
                   : const Text('DEPLOY ASSIGNMENT', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
             ),
@@ -274,7 +273,7 @@ class _AdminAssignRouteScreenState extends State<AdminAssignRouteScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.hub_outlined, size: 80, color: Colors.white.withOpacity(0.05)),
+          const Icon(Icons.hub_outlined, size: 80, color: AppColors.border),
           const SizedBox(height: 20),
           Text(message, style: const TextStyle(color: AppColors.textMuted, fontSize: 14)),
         ],

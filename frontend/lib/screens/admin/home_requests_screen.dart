@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/auth_service.dart';
 import '../../config/app_colors.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class AdminHomeRequestsScreen extends StatefulWidget {
   const AdminHomeRequestsScreen({super.key});
@@ -16,149 +15,88 @@ class _AdminHomeRequestsScreenState extends State<AdminHomeRequestsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    print('DEBUG: Building HomeRequestsScreen');
+    
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white, // Force extreme contrast for testing
       appBar: AppBar(
-        title: const Text('Resident Verifications'),
-        backgroundColor: AppColors.secondary,
-        elevation: 0,
+        title: const Text('Resident Verifications '),
+        backgroundColor: Colors.blue.shade800,
+        foregroundColor: Colors.white,
       ),
       body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance.collection('users').snapshots(),
+        stream: FirebaseFirestore.instance
+            .collection('users')
+            .where('homeStatus', whereIn: ['pending_approval', 'pending_removal'])
+            .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+            return Center(child: Text('FIREBASE ERROR: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
           }
+          
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator(color: AppColors.accent));
+            return const Center(child: CircularProgressIndicator());
           }
 
-          // Safe parsing
-          List<QueryDocumentSnapshot> pendingDocs = [];
-          if (snapshot.hasData && snapshot.data != null) {
-            for (var doc in snapshot.data!.docs) {
-              try {
-                final data = doc.data() as Map<String, dynamic>?;
-                if (data != null && (data['homeStatus'] == 'pending_approval' || data['homeStatus'] == 'pending_removal')) {
-                  pendingDocs.add(doc);
-                }
-              } catch (e) {
-                 // ignore corrupted docs
-              }
-            }
-          }
+          final docs = snapshot.data?.docs ?? [];
+          print('DEBUG: Found ${docs.length} pending requests');
 
-          if (pendingDocs.isEmpty) {
-            return const Center(
+          if (docs.isEmpty) {
+            return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(Icons.done_all, size: 64, color: Colors.green),
-                  SizedBox(height: 16),
-                  Text('All clear! No pending requests.', style: TextStyle(color: Colors.grey)),
+                  const Icon(Icons.verified, size: 100, color: Colors.green),
+                  const SizedBox(height: 20),
+                  Text('NO PENDING REQUESTS', style: TextStyle(color: Colors.grey.shade800, fontWeight: FontWeight.bold)),
                 ],
               ),
             );
           }
 
           return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: pendingDocs.length,
+            padding: const EdgeInsets.all(20),
+            itemCount: docs.length,
             itemBuilder: (context, index) {
-              final doc = pendingDocs[index];
+              final doc = docs[index];
               final data = doc.data() as Map<String, dynamic>;
-              bool isRemoval = data['homeStatus'] == 'pending_removal';
-              
-              String locText = 'No Coordinate Data';
-              if (data['pendingLat'] != null && data['pendingLng'] != null) {
-                locText = '${data['pendingLat']} , ${data['pendingLng']}';
-              }
+              final String userId = doc.id;
+              final bool isRemoval = data['homeStatus'] == 'pending_removal';
+              final String name = data['name'] ?? 'Unknown Resident';
 
-              return Card(
-                margin: const EdgeInsets.only(bottom: 16),
-                color: AppColors.secondary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              return Container(
+                margin: const EdgeInsets.only(bottom: 20),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade300, width: 2),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 10)],
+                ),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    ListTile(
-                      leading: CircleAvatar(
-                        backgroundColor: isRemoval ? Colors.red.withOpacity(0.2) : Colors.blue.withOpacity(0.2),
-                        child: Icon(isRemoval ? Icons.delete_forever : Icons.home, 
-                                   color: isRemoval ? Colors.redAccent : Colors.blueAccent),
-                      ),
-                      title: Text(data['name'] ?? 'Resident', style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                      subtitle: Text(isRemoval ? 'Requested Removal' : 'Requested Setup', style: const TextStyle(color: AppColors.textMuted)),
-                    ),
-                    if (!isRemoval)
-                      Container(
-                        height: 120,
-                        width: double.infinity,
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: AppColors.background,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: Colors.white10),
-                        ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: GoogleMap(
-                            initialCameraPosition: CameraPosition(
-                              target: LatLng(
-                                (data['pendingLat'] as num).toDouble(),
-                                (data['pendingLng'] as num).toDouble(),
-                              ),
-                              zoom: 15,
-                            ),
-                            liteModeEnabled: true,
-                            zoomGesturesEnabled: false,
-                            scrollGesturesEnabled: false,
-                            myLocationButtonEnabled: false,
-                            mapToolbarEnabled: false,
-                            markers: {
-                              Marker(
-                                markerId: MarkerId('req_${doc.id}'),
-                                position: LatLng(
-                                  (data['pendingLat'] as num).toDouble(),
-                                  (data['pendingLng'] as num).toDouble(),
-                                ),
-                              ),
-                            },
+                    Text(name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black)),
+                    Text(isRemoval ? 'ACTION: REMOVE LOCATION' : 'ACTION: NEW SETUP', 
+                         style: TextStyle(color: isRemoval ? Colors.red : Colors.blue, fontWeight: FontWeight.w900)),
+                    const SizedBox(height: 20),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () => _handleAction(userId, true, isRemoval),
+                            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+                            child: const Text('APPROVE'),
                           ),
                         ),
-                      ),
-                    
-                    if (!isRemoval)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.location_on, color: Colors.blueAccent, size: 14),
-                            const SizedBox(width: 8),
-                            Expanded(child: Text('GPS Target: [$locText]', style: const TextStyle(fontSize: 11, color: AppColors.textMuted))),
-                          ],
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => _handleAction(userId, false, isRemoval),
+                            child: const Text('REJECT'),
+                          ),
                         ),
-                      ),
-                    Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        children: [
-                          TextButton(
-                            onPressed: () => _handleAction(doc.id, false, isRemoval),
-                            child: const Text('Reject', style: TextStyle(color: Colors.grey)),
-                          ),
-                          const SizedBox(width: 12),
-                          ElevatedButton(
-                            onPressed: () => _handleAction(doc.id, true, isRemoval),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isRemoval ? Colors.redAccent : Colors.green,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            ),
-                            child: Text(isRemoval ? 'Approve Removal' : 'Approve Location'),
-                          ),
-                        ],
-                      ),
+                      ],
                     ),
                   ],
                 ),
@@ -181,17 +119,8 @@ class _AdminHomeRequestsScreenState extends State<AdminHomeRequestsScreen> {
       } else {
         await _authService.handleHomeApproval(userId, approved);
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(approved ? 'Request Approved' : 'Request Rejected'), backgroundColor: Colors.teal),
-        );
-      }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
-        );
-      }
+      print('ERROR IN ACTION: $e');
     }
   }
 }

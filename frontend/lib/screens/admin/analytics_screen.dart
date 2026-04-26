@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import '../../config/app_colors.dart';
 
 class AdminAnalyticsScreen extends StatelessWidget {
   const AdminAnalyticsScreen({super.key});
@@ -24,10 +25,10 @@ class AdminAnalyticsScreen extends StatelessWidget {
               mainAxisSpacing: 12,
               childAspectRatio: 1.2,
               children: [
-                _buildMetricCard('Total Waste', '245 Tons', Colors.blue, 'Daily'),
-                _buildMetricCard('Completion', '92%', Colors.green, 'Today'),
-                _buildMetricCard('Avg Response', '14 Min', Colors.orange, 'Last Hour'),
-                _buildMetricCard('Drivers Active', '18/20', Colors.purple, 'Now'),
+                _buildMetricCard('Total Waste', '245 Tons', AppColors.primary, 'Daily'),
+                _buildMetricCard('Completion', '92%', AppColors.success, 'Today'),
+                _buildMetricCard('Avg Response', '14 Min', AppColors.warning, 'Last Hour'),
+                _buildMetricCard('Drivers Active', '18/20', AppColors.accent, 'Now'),
               ],
             ),
             const SizedBox(height: 24),
@@ -54,10 +55,10 @@ class AdminAnalyticsScreen extends StatelessWidget {
                           const FlSpot(6, 70),
                         ],
                         isCurved: true,
-                        color: Colors.blue,
+                        color: AppColors.primary,
                         barWidth: 4,
                         dotData: const FlDotData(show: false),
-                        belowBarData: BarAreaData(show: true, color: Colors.blue.withOpacity(0.1)),
+                        belowBarData: BarAreaData(show: true, color: AppColors.primary.withOpacity(0.1)),
                       ),
                     ],
                   ),
@@ -76,9 +77,9 @@ class AdminAnalyticsScreen extends StatelessWidget {
                     sectionsSpace: 4,
                     centerSpaceRadius: 40,
                     sections: [
-                      PieChartSectionData(value: 65, color: Colors.green, title: 'Happy', radius: 50, titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                      PieChartSectionData(value: 20, color: Colors.blue, title: 'Neutral', radius: 50, titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-                      PieChartSectionData(value: 15, color: Colors.orange, title: 'Unhappy', radius: 50, titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                      PieChartSectionData(value: 65, color: AppColors.success, title: 'Happy', radius: 50, titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.card)),
+                      PieChartSectionData(value: 20, color: AppColors.primary, title: 'Neutral', radius: 50, titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.card)),
+                      PieChartSectionData(value: 15, color: AppColors.warning, title: 'Unhappy', radius: 50, titleStyle: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.card)),
                     ],
                   ),
                 ),
@@ -97,11 +98,11 @@ class AdminAnalyticsScreen extends StatelessWidget {
                     titlesData: const FlTitlesData(show: false),
                     borderData: FlBorderData(show: false),
                     barGroups: [
-                      BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 12, color: Colors.blue)]),
-                      BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 18, color: Colors.blue)]),
-                      BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 8, color: Colors.blue)]),
-                      BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 14, color: Colors.blue)]),
-                      BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 20, color: Colors.blue)]),
+                      BarChartGroupData(x: 0, barRods: [BarChartRodData(toY: 12, color: AppColors.primary)]),
+                      BarChartGroupData(x: 1, barRods: [BarChartRodData(toY: 18, color: AppColors.primary)]),
+                      BarChartGroupData(x: 2, barRods: [BarChartRodData(toY: 8, color: AppColors.primary)]),
+                      BarChartGroupData(x: 3, barRods: [BarChartRodData(toY: 14, color: AppColors.primary)]),
+                      BarChartGroupData(x: 4, barRods: [BarChartRodData(toY: 20, color: AppColors.primary)]),
                     ],
                   ),
                 ),
@@ -124,9 +125,12 @@ class AdminAnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildMetricCard(String label, String value, Color color, String subtitle) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         child: Column(
@@ -148,9 +152,12 @@ class AdminAnalyticsScreen extends StatelessWidget {
   }
 
   Widget _buildChartCard(BuildContext context, String title, Widget chart) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.card,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.border),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
